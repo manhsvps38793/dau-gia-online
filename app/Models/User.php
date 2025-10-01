@@ -32,4 +32,7 @@ class User extends Authenticatable
     {
         $this->attributes['password'] = Hash::make($value);
     }
+    public function auctionProfiles() {
+        return $this->hasMany(AuctionProfile::class, 'user_id', 'user_id');
+    }
 }

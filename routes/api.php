@@ -3,11 +3,72 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuctionItemController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AuctionProfileController;
+use App\Http\Controllers\Api\BidsController;
+use App\Http\Controllers\Api\AuctionSessionController;
+use App\Http\Controllers\Api\ContractController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\NotificationController;
 
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
+
+// 📌 Public routes (ai cũng xem được)
 Route::get('/', [AuctionItemController::class, 'index']);
 Route::get('/auction-items/{id}', [AuctionItemController::class, 'show']);
 
+// 📌 Auth routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
+
+// 📌 Quản lý sản phẩm (chỉ tổ chức, admin)
+Route::post('/auction-items', [AuctionItemController::class, 'store'])
+    ->middleware(['auth:sanctum', 'role:Administrator,ToChucDauGia']);
+
+// 📌 Người dùng nộp hồ sơ
+Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
+    ->middleware(['auth:sanctum', 'role:User,Customer']);
+
+// 📌 Chuyên viên TTC duyệt hồ sơ
+Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus'])
+    ->middleware(['auth:sanctum', 'role:ChuyenVienTTC']);
+
+// 📌 Đấu giá viên tạo phiên
+Route::post('/auction-sessions', [AuctionSessionController::class, 'store'])
+    ->middleware(['auth:sanctum', 'role:DauGiaVien']);
+
+// 📌 Người dùng tham gia đặt giá
+Route::post('/bids', [BidsController::class, 'placeBid'])
+    ->middleware(['auth:sanctum', 'role:User,Customer']);
+
+// 📌 Đấu giá viên tạo hợp đồng sau phiên
+Route::post('/contracts/{session_id}', [ContractController::class, 'createContract'])
+    ->middleware(['auth:sanctum', 'role:DauGiaVien']);
+
+// 📌 Thanh toán (người thắng thực hiện)
+Route::post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment'])
+    ->middleware(['auth:sanctum', 'role:User,Customer']);
+Route::get('/payments', [PaymentController::class, 'listPayments'])
+    ->middleware(['auth:sanctum']);
+
+// 📌 Báo cáo (chỉ admin)
+Route::post('/reports/generate', [ReportController::class, 'generateReport'])
+    ->middleware(['auth:sanctum', 'role:Administrator']);
+Route::get('/reports', [ReportController::class, 'listReports'])
+    ->middleware(['auth:sanctum', 'role:Administrator,ChuyenVienTTC']);
+
+// 📌 Thông báo
+Route::get('/notifications/{user_id}', [NotificationController::class, 'getUserNotifications'])
+    ->middleware('auth:sanctum');
+Route::post('/notifications', [NotificationController::class, 'createNotification'])
+    ->middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC']);
+Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
+    ->middleware('auth:sanctum');
+Route::put('/notifications/user/{user_id}/read-all', [NotificationController::class, 'markAllAsRead'])
+    ->middleware('auth:sanctum');
