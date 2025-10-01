@@ -21,7 +21,13 @@ class AuctionItemController extends Controller
     // GET /api/auction-items/{id}
     public function show($id)
     {
-        $item = AuctionItem::with('category')->findOrFail($id);
+        $item = AuctionItem::with([
+            'category',
+            'owner',
+            'sessions.auctionOrg',
+            'sessions.bids.user',
+            'sessions.contract'
+        ])->findOrFail($id);
 
         return new AuctionItemResource($item);
     }

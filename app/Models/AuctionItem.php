@@ -19,4 +19,14 @@ class AuctionItem extends Model
     {
         return $this->belongsTo(Category::class, 'category_id', 'category_id');
     }
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function sessions()
+    {
+        return $this->hasMany(AuctionSession::class, 'item_id', 'item_id');
+    }
+
 }
