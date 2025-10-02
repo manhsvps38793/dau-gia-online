@@ -7,7 +7,6 @@ class Contract extends Model
 {
     protected $table = 'Contracts';
     protected $primaryKey = 'contract_id';
-    public $timestamps = false;
 
     protected $fillable = [
         'session_id',
@@ -17,12 +16,15 @@ class Contract extends Model
         'status'
     ];
 
-     public function winner()
+    public $timestamps = false;
+
+    public function winner()
     {
         return $this->belongsTo(User::class, 'winner_id', 'user_id');
     }
 
-    public function session() {
-        return $this->belongsTo(AuctionSession::class, 'session_id');
+    public function session()
+    {
+        return $this->belongsTo(AuctionSession::class, 'session_id', 'session_id');
     }
 }

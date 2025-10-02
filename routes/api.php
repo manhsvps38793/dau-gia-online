@@ -26,10 +26,16 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
+// Sửa thông tin user
+Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:sanctum');
 
 // 📌 Quản lý sản phẩm (chỉ tổ chức, admin)
 Route::post('/auction-items', [AuctionItemController::class, 'store'])
     ->middleware(['auth:sanctum', 'role:Administrator,ToChucDauGia']);
+Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
+    ->middleware('auth:sanctum');
+Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
+    ->middleware('auth:sanctum');
 
 // 📌 Người dùng nộp hồ sơ
 Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])

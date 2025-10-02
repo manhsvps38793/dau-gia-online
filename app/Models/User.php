@@ -15,6 +15,7 @@ class User extends Authenticatable
     protected $primaryKey = 'user_id';
     public $timestamps = false; // bạn đã có created_at, deleted_at
 
+
     protected $fillable = [
         'full_name',
         'email',

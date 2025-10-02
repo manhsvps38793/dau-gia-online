@@ -85,8 +85,35 @@ class AuthController extends Controller
     }
 
     // GET /api/user
-    public function user(Request $request)
+     public function user(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json([
+            'status' => true,
+            'user'   => $request->user()
+        ]);
+    }
+
+    // ✅ Cập nhật thông tin user
+    public function update(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name'     => 'sometimes|string|max:255',
+            'email'    => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
+            'password' => 'sometimes|min:6|confirmed'
+        ]);
+
+        if(isset($data['password'])){
+            $data['password'] = Hash::make($data['password']);
+        }
+
+        $user->update($data);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Cập nhật thông tin thành công',
+            'user'    => $user
+        ]);
     }
 }
