@@ -18,7 +18,7 @@ use App\Http\Controllers\Api\NotificationController;
 */
 
 // 📌 Public routes (ai cũng xem được)
-Route::get('/', [AuctionItemController::class, 'index']);
+Route::get('/products', [AuctionItemController::class, 'index']);
 Route::get('/auction-items/{id}', [AuctionItemController::class, 'show']);
 
 // 📌 Auth routes
