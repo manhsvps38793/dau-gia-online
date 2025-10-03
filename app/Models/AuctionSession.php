@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,16 @@ class AuctionSession extends Model
     protected $primaryKey = 'session_id';
     public $timestamps = false;
 
+    protected $casts = [
+        'start_time'     => 'datetime',
+        'end_time'       => 'datetime',
+        'register_start' => 'datetime',
+        'register_end'   => 'datetime',
+        'checkin_time'   => 'datetime',
+        'bid_start'      => 'datetime',
+        'bid_end'        => 'datetime',
+    ];
+
     protected $fillable = [
         'item_id',
         'created_by',
@@ -17,9 +28,6 @@ class AuctionSession extends Model
         'regulation',
         'status',
         'auction_org_id',
-        'start_time',
-        'end_time',
-        'regulation',
         'method',
         'register_start',
         'register_end',
@@ -27,7 +35,6 @@ class AuctionSession extends Model
         'bid_start',
         'bid_end',
         'bid_step',
-        'status',
     ];
 
     public function item()

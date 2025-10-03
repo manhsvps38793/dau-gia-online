@@ -1,11 +1,13 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Models\Bid;
 use App\Models\AuctionSession;
+use App\Models\Notification;
+use App\Events\BidPlaced;
 
 class BidsController extends Controller
 {
@@ -48,13 +50,26 @@ class BidsController extends Controller
             'amount'=>$request->amount,
             'bid_time'=>now()
         ]);
-       // Tạo thông báo
+
+        // Tạo thông báo
         Notification::create([
             'user_id' => $user->user_id,
-            'type' => 'DatGia',
             'message' => "Bạn đã đặt giá {$request->amount} cho phiên #{$session->session_id}",
             'created_at' => now()
         ]);
+
+        // Broadcast realtime
+        broadcast(new BidPlaced($bid))->toOthers();
+
         return response()->json(['status'=>true,'message'=>'Đặt giá thành công','bid'=>$bid]);
+    }
+
+    // API lấy danh sách bid hiện tại
+    public function listBids($sessionId)
+    {
+        $bids = Bid::where('session_id', $sessionId)
+                   ->orderBy('bid_time', 'desc')
+                   ->get();
+        return response()->json($bids);
     }
 }

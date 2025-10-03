@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\AuctionSession;
 use Illuminate\Support\Facades\Validator;
+use App\Jobs\StartAuctionJob;
+use App\Jobs\EndAuctionJob;
 
 class AuctionSessionController extends Controller
 {
-    // 📌 Tạo phiên đấu giá
     public function store(Request $request)
     {
         $user = $request->user();
@@ -42,34 +43,43 @@ class AuctionSessionController extends Controller
             'created_by' => $user->user_id
         ]));
 
+        $now = now();
+
+        // Job bắt đầu
+        if ($session->bid_start->gt($now)) {
+            StartAuctionJob::dispatch($session->session_id)->delay($session->bid_start);
+        }
+
+        // Job kết thúc
+        if ($session->bid_end->gt($now)) {
+            EndAuctionJob::dispatch($session->session_id)->delay($session->bid_end);
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Tạo phiên đấu giá thành công',
-            'session'=> $session
+            'session' => $session
         ]);
     }
 
-    // 📌 Xem danh sách tất cả phiên đấu giá
     public function index()
     {
-        $sessions = AuctionSession::with(['item', 'auctionOrg'])->get();
+        $sessions = AuctionSession::with(['item.owner', 'auctionOrg'])->get();
         return response()->json([
             'status' => true,
             'sessions' => $sessions
         ]);
     }
 
-    // 📌 Xem chi tiết 1 phiên đấu giá
     public function show($id)
     {
-        $session = AuctionSession::with(['item', 'auctionOrg'])->findOrFail($id);
+        $session = AuctionSession::with(['item.owner', 'auctionOrg'])->findOrFail($id);
         return response()->json([
             'status' => true,
             'session' => $session
         ]);
     }
 
-    // 📌 Cập nhật phiên đấu giá
     public function update(Request $request, $id)
     {
         $session = AuctionSession::findOrFail($id);
@@ -100,14 +110,23 @@ class AuctionSessionController extends Controller
 
         $session->update($request->all());
 
+        $now = now();
+
+        if ($session->bid_start->gt($now)) {
+            StartAuctionJob::dispatch($session->session_id)->delay($session->bid_start);
+        }
+
+        if ($session->bid_end->gt($now)) {
+            EndAuctionJob::dispatch($session->session_id)->delay($session->bid_end);
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Cập nhật phiên đấu giá thành công',
-            'session'=> $session
+            'session' => $session
         ]);
     }
 
-    // 📌 Xóa phiên đấu giá
     public function destroy($id)
     {
         $session = AuctionSession::findOrFail($id);

@@ -21,6 +21,14 @@ use App\Http\Controllers\Api\NotificationController;
 Route::get('/products', [AuctionItemController::class, 'index']);
 Route::get('/auction-items/{id}', [AuctionItemController::class, 'show']);
 
+// 📌 Quản lý sản phẩm (chỉ tổ chức, admin)
+Route::post('/auction-items', [AuctionItemController::class, 'store'])
+    ->middleware('auth:sanctum');
+Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
+    ->middleware('auth:sanctum');
+Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
+    ->middleware('auth:sanctum');
+
 // 📌 Auth routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,14 +36,6 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
 // Sửa thông tin user
 Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:sanctum');
-
-// 📌 Quản lý sản phẩm (chỉ tổ chức, admin)
-Route::post('/auction-items', [AuctionItemController::class, 'store'])
-    ->middleware(['auth:sanctum', 'role:Administrator,ToChucDauGia']);
-Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
-    ->middleware('auth:sanctum');
-Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
-    ->middleware('auth:sanctum');
 
 // 📌 Người dùng nộp hồ sơ
 Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
@@ -46,7 +46,18 @@ Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'u
     ->middleware(['auth:sanctum', 'role:ChuyenVienTTC']);
 
 // 📌 Đấu giá viên tạo phiên
+Route::get('/auction-sessions', [AuctionSessionController::class, 'index']);
+
+Route::get('/auction-sessions/{id}', [AuctionSessionController::class, 'show']);
+
+
 Route::post('/auction-sessions', [AuctionSessionController::class, 'store'])
+    ->middleware(['auth:sanctum', 'role:DauGiaVien']);
+
+Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update'])
+    ->middleware(['auth:sanctum', 'role:DauGiaVien']);
+
+Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destroy'])
     ->middleware(['auth:sanctum', 'role:DauGiaVien']);
 
 // 📌 Người dùng tham gia đặt giá

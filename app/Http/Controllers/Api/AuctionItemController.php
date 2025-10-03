@@ -19,7 +19,7 @@ class AuctionItemController extends Controller
             'description'    => 'nullable|string',
             'starting_price' => 'required|numeric|min:1',
             'image_url'      => 'nullable|string',
-            'status'         => 'in:ChoDauGia,DangDauGia,DaBan,Huy'
+            'status'         => 'in:ChoDuyet,ChoDauGia,DangDauGia,DaBan,Huy'
         ]);
 
         $item = AuctionItem::create([
@@ -29,7 +29,7 @@ class AuctionItemController extends Controller
             'description'    => $request->description,
             'starting_price' => $request->starting_price,
             'image_url'      => $request->image_url,
-            'status'         => $request->status ?? 'ChoDauGia',
+            'status'         => $request->status ?? 'ChoDuyet',
             'created_at'     => now()
         ]);
 
@@ -44,7 +44,6 @@ class AuctionItemController extends Controller
     public function index()
     {
         $items = AuctionItem::with('category')
-            ->whereIn('status', ['ChoDauGia', 'DangDauGia'])
             ->whereNull('deleted_at')
             ->get();
 
@@ -93,13 +92,14 @@ class AuctionItemController extends Controller
             'description'    => 'nullable|string',
             'starting_price' => 'sometimes|numeric|min:1',
             'image_url'      => 'nullable|string',
-            'status'         => 'sometimes|in:ChoDauGia,DangDauGia,DaBan,Huy'
+            'status'         => 'sometimes|in:ChoDuyet,ChoDauGia,DangDauGia,DaBan,Huy'
         ]);
-
         // Cập nhật các trường hợp được gửi
         $item->fill($validated);
         $item->save();
 
+// Realtime broadcast
+broadcast(new \App\Events\ItemUpdated($item))->toOthers();
         return response()->json([
             'status' => true,
             'message'=> 'Cập nhật sản phẩm thành công',
