@@ -64,7 +64,7 @@ class AuctionSessionController extends Controller
 
     public function index()
     {
-        $sessions = AuctionSession::with(['item.owner', 'auctionOrg'])->get();
+        $sessions = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])->get();
         return response()->json([
             'status' => true,
             'sessions' => $sessions
@@ -73,7 +73,7 @@ class AuctionSessionController extends Controller
 
     public function show($id)
     {
-        $session = AuctionSession::with(['item.owner', 'auctionOrg'])->findOrFail($id);
+        $session = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])->findOrFail($id);
         return response()->json([
             'status' => true,
             'session' => $session

@@ -27,7 +27,7 @@ class BidsController extends Controller
 
         // Kiểm tra user đã được duyệt hồ sơ
         $profile = $user->auctionProfiles()
-            ->where('item_id', $session->item_id)
+            ->where('session_id', $session->session_id)
             ->where('status', 'DaDuyet')
             ->first();
 
@@ -35,21 +35,29 @@ class BidsController extends Controller
             return response()->json(['status'=>false,'message'=>'Bạn chưa được duyệt tham gia phiên đấu giá này'],403);
         }
 
+        // Lấy giá cao nhất hiện tại
         $highestBid = Bid::where('session_id', $session->session_id)
                          ->orderBy('amount','desc')
                          ->first();
+
         $minBid = $highestBid ? $highestBid->amount + 1 : $session->item->starting_price;
 
         if ($request->amount < $minBid) {
             return response()->json(['status'=>false,'message'=>"Giá đặt phải >= {$minBid}"],400);
         }
 
+        // Tạo bid mới
         $bid = Bid::create([
-            'session_id'=>$session->session_id,
-            'user_id'=>$user->user_id,
-            'amount'=>$request->amount,
-            'bid_time'=>now()
+            'session_id' => $session->session_id,
+            'user_id' => $user->user_id,
+            'amount' => $request->amount,
+            'bid_time' => now()
         ]);
+
+        // Cập nhật phiên đấu giá: giá cao nhất và người dẫn đầu
+        $session->highest_bid = $bid->amount;           // cần thêm cột highest_bid trong DB nếu chưa có
+        $session->current_winner_id = $user->user_id;  // cần thêm cột current_winner_id
+        $session->save();
 
         // Tạo thông báo
         Notification::create([
@@ -68,8 +76,13 @@ class BidsController extends Controller
     public function listBids($sessionId)
     {
         $bids = Bid::where('session_id', $sessionId)
+                   ->with('user') // Thêm relation user
                    ->orderBy('bid_time', 'desc')
                    ->get();
-        return response()->json($bids);
+
+        return response()->json([
+            'status' => true,
+            'bids' => $bids
+        ]);
     }
 }

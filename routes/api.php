@@ -40,10 +40,11 @@ Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:
 // 📌 Người dùng nộp hồ sơ
 Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
     ->middleware(['auth:sanctum', 'role:User,Customer']);
-
+// 📌 Lấy danh sách hồ sơ 
+Route::get('/auction-profiles', [AuctionProfileController::class, 'index']);
 // 📌 Chuyên viên TTC duyệt hồ sơ
-Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus'])
-    ->middleware(['auth:sanctum', 'role:ChuyenVienTTC']);
+Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus']);
+    // ->middleware(['auth:sanctum', 'role:ChuyenVienTTC']); test nhớ mở ra
 
 // 📌 Đấu giá viên tạo phiên
 Route::get('/auction-sessions', [AuctionSessionController::class, 'index']);
@@ -63,10 +64,16 @@ Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destr
 // 📌 Người dùng tham gia đặt giá
 Route::post('/bids', [BidsController::class, 'placeBid'])
     ->middleware(['auth:sanctum', 'role:User,Customer']);
+// show bids
+Route::get('/bids/{sessionId}', [BidsController::class, 'listBids']);
 
 // 📌 Đấu giá viên tạo hợp đồng sau phiên
-Route::post('/contracts/{session_id}', [ContractController::class, 'createContract'])
-    ->middleware(['auth:sanctum', 'role:DauGiaVien']);
+// Route::post('/contracts/{session_id}', [ContractController::class, 'createContract'])
+//     ->middleware(['auth:sanctum', 'role:DauGiaVien']); hợp đồng đã tự tạo
+    
+    Route::get('/contracts', [ContractController::class, 'index']);      // Danh sách hợp đồng
+Route::get('/contracts/{id}', [ContractController::class, 'show']); // Chi tiết hợp đồng
+
 
 // 📌 Thanh toán (người thắng thực hiện)
 Route::post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment'])

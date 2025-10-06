@@ -61,4 +61,9 @@ class AuctionSession extends Model
     {
         return $this->hasOne(Contract::class, 'session_id');
     }
+public function profiles()
+{
+    return $this->hasMany(AuctionProfile::class, 'session_id', 'session_id');
+}
+
 }
