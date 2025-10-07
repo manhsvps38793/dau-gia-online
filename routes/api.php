@@ -75,12 +75,16 @@ Route::get('/bids/{sessionId}', [BidsController::class, 'listBids']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']); // Chi tiết hợp đồng
 
 
-// 📌 Thanh toán (người thắng thực hiện)
+// Thanh toán nội bộ
 Route::post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment'])
     ->middleware(['auth:sanctum', 'role:User,Customer']);
 Route::get('/payments', [PaymentController::class, 'listPayments'])
     ->middleware(['auth:sanctum']);
 
+// Thanh toán online qua VNPAY
+Route::post('/contracts/{contract_id}/pay-online', [PaymentController::class, 'payOnline'])
+    ->middleware(['auth:sanctum', 'role:User,Customer']);
+Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
 // 📌 Báo cáo (chỉ admin)
 Route::post('/reports/generate', [ReportController::class, 'generateReport'])
     ->middleware(['auth:sanctum', 'role:Administrator']);

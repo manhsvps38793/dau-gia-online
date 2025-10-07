@@ -62,7 +62,7 @@ class AuctionProfileController extends Controller
 
     public function index()
     {
-        $profiles = AuctionProfile::with('session', 'item') // 🔹 thêm 'session'
+        $profiles = AuctionProfile::with('session', 'item', 'user') // 🔹 thêm 'session'
             ->orderBy('created_at', 'desc')
             ->get();
 

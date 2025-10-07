@@ -27,4 +27,5 @@ class Contract extends Model
     {
         return $this->belongsTo(AuctionSession::class, 'session_id', 'session_id');
     }
+  
 }
