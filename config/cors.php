@@ -17,7 +17,13 @@ return [
     'allowed_origins' => [
         'http://127.0.0.1:5500',  // Origin frontend (Live Server – kiểm tra F12 > Network)
         'http://localhost:5500',   // Fallback
+         // Frontend chạy trên React/Vite hoặc Node dev server
+    'http://127.0.0.1:3001',
+    'http://localhost:3001',
+    'http://localhost:3000',
+        'http://127.0.0.1:3000',
     ],
+
 
     /*
      * Allowed origins patterns (regex nếu cần).

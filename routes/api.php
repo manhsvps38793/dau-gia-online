@@ -40,7 +40,7 @@ Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:
 // 📌 Người dùng nộp hồ sơ
 Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
     ->middleware(['auth:sanctum', 'role:User,Customer']);
-// 📌 Lấy danh sách hồ sơ 
+// 📌 Lấy danh sách hồ sơ
 Route::get('/auction-profiles', [AuctionProfileController::class, 'index']);
 // 📌 Chuyên viên TTC duyệt hồ sơ
 Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus']);
@@ -70,7 +70,7 @@ Route::get('/bids/{sessionId}', [BidsController::class, 'listBids']);
 // 📌 Đấu giá viên tạo hợp đồng sau phiên
 // Route::post('/contracts/{session_id}', [ContractController::class, 'createContract'])
 //     ->middleware(['auth:sanctum', 'role:DauGiaVien']); hợp đồng đã tự tạo
-    
+
     Route::get('/contracts', [ContractController::class, 'index']);      // Danh sách hợp đồng
 Route::get('/contracts/{id}', [ContractController::class, 'show']); // Chi tiết hợp đồng
 
