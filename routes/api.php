@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
-
+use App\Http\Controllers\Api\CategoryController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -29,11 +29,24 @@ Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
 Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
     ->middleware('auth:sanctum');
 
+// 📌 Quản lý danh mục
+Route::get('/categories', [CategoryController::class, 'index']);        // Danh sách danh mục
+Route::get('/categories/{id}', [CategoryController::class, 'show']);    // Chi tiết danh mục
+
+Route::post('/categories', [CategoryController::class, 'store'])        // Thêm danh mục
+    ->middleware(['auth:sanctum', 'role:Administrator,DauGiaVien']);
+Route::put('/categories/{id}', [CategoryController::class, 'update'])   // Sửa danh mục
+    ->middleware(['auth:sanctum', 'role:Administrator,DauGiaVien']);
+Route::delete('/categories/{id}', [CategoryController::class, 'destroy']) // Xóa danh mục
+    ->middleware(['auth:sanctum', 'role:Administrator']);
+
+
 // 📌 Auth routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
+Route::get('/showuser', [AuthController::class, 'index']);
 // Sửa thông tin user
 Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:sanctum');
 
@@ -78,6 +91,7 @@ Route::get('/contracts/{id}', [ContractController::class, 'show']); // Chi tiế
 // Thanh toán nội bộ
 Route::post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment'])
     ->middleware(['auth:sanctum', 'role:User,Customer']);
+//show thanh toán
 Route::get('/payments', [PaymentController::class, 'listPayments'])
     ->middleware(['auth:sanctum']);
 
@@ -85,6 +99,7 @@ Route::get('/payments', [PaymentController::class, 'listPayments'])
 Route::post('/contracts/{contract_id}/pay-online', [PaymentController::class, 'payOnline'])
     ->middleware(['auth:sanctum', 'role:User,Customer']);
 Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
+
 // 📌 Báo cáo (chỉ admin)
 Route::post('/reports/generate', [ReportController::class, 'generateReport'])
     ->middleware(['auth:sanctum', 'role:Administrator']);
