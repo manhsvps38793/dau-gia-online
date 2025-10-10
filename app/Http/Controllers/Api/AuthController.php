@@ -61,7 +61,7 @@ class AuthController extends Controller
         $verifyUrl = url('/api/verify-email/' . $verifyToken);
 
         // Gửi mail ngay (send, không queue)
-        Mail::to($user->email)->send(new VerifyEmailMail($user->full_name, $verifyUrl));
+        Mail::to($user->email)->queue(new VerifyEmailMail($user->full_name, $verifyUrl));
 
         return response()->json([
             'status' => true,
