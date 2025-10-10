@@ -3,18 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens; // Thêm để tạo token
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Carbon;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable; // thêm trait HasApiTokens
+    use HasApiTokens, Notifiable;
 
     protected $table = 'Users';
     protected $primaryKey = 'user_id';
-    public $timestamps = false; // bạn đã có created_at, deleted_at
-
+    public $timestamps = false;
 
     protected $fillable = [
         'full_name',
@@ -28,12 +28,23 @@ class User extends Authenticatable
 
     protected $hidden = ['password'];
 
-    // Nếu muốn tự hash password khi tạo hoặc cập nhật
+    // ✅ Tự động hash password
     public function setPasswordAttribute($value)
     {
-        $this->attributes['password'] = Hash::make($value);
+        if (!empty($value) && !\Illuminate\Support\Facades\Hash::needsRehash($value)) {
+            $this->attributes['password'] = Hash::make($value);
+        }
     }
-    public function auctionProfiles() {
+
+    public function auctionProfiles()
+    {
         return $this->hasMany(AuctionProfile::class, 'user_id', 'user_id');
+    }
+
+    // ✅ Chuyển múi giờ sang Asia/Ho_Chi_Minh khi serialize
+    public function serializeDate(\DateTimeInterface $date)
+    {
+       $carbonDate = Carbon::instance($date)->setTimezone('Asia/Ho_Chi_Minh');
+        return $carbonDate->format('Y-m-d\TH:i:sP');
     }
 }

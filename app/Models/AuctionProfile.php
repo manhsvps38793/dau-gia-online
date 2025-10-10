@@ -3,7 +3,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class AuctionProfile extends Model
+class AuctionProfile extends BaseModel
 {
     protected $table = 'AuctionProfiles';
     protected $primaryKey = 'profile_id';
@@ -27,4 +27,9 @@ class AuctionProfile extends Model
     public function session() {
         return $this->belongsTo(AuctionSession::class, 'session_id', 'session_id');
     }
+    public function depositPayment()
+{
+    return $this->hasOne(DepositPayment::class, 'profile_id', 'profile_id');
+}
+
 }

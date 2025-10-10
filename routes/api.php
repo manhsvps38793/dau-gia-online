@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\DepositPaymentController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -25,7 +27,7 @@ Route::get('/auction-items/{id}', [AuctionItemController::class, 'show']);
 Route::post('/auction-items', [AuctionItemController::class, 'store'])
     ->middleware('auth:sanctum');
 Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
-    ->middleware('auth:sanctum');
+    ->middleware(['auth:sanctum', 'role:Administrator,DauGiaVien']);
 Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
     ->middleware('auth:sanctum');
 
@@ -58,6 +60,16 @@ Route::get('/auction-profiles', [AuctionProfileController::class, 'index']);
 // 📌 Chuyên viên TTC duyệt hồ sơ
 Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus']);
     // ->middleware(['auth:sanctum', 'role:ChuyenVienTTC']); test nhớ mở ra
+
+// thanh toán tiền cọc vái
+Route::prefix('deposit')->group(function () {
+    Route::post('/pay', [DepositPaymentController::class, 'pay']);
+    // Route::get('/pay', [DepositPaymentController::class, 'index']);
+    Route::get('/vnpay-return', [DepositPaymentController::class, 'vnpayReturn'])->name('deposit.vnpay.return');
+    Route::post('/refund', [DepositPaymentController::class, 'refund']);
+    Route::get('/status/{profile_id}', [DepositPaymentController::class, 'status']);
+});
+
 
 // 📌 Đấu giá viên tạo phiên
 Route::get('/auction-sessions', [AuctionSessionController::class, 'index']);

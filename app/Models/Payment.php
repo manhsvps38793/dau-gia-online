@@ -3,14 +3,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Payment extends Model
+class Payment extends BaseModel
 {
     protected $table = 'Payments';
     protected $primaryKey = 'payment_id';
     public $timestamps = false;
 
     protected $fillable = [
-        'contract_id', 'sender_id', 'amount', 'payment_date', 'method', 'status', 'receiver_id'
+        'contract_id', 'sender_id', 'amount', 'payment_date', 'method', 'status', 'receiver_id', 'profile_id'
     ];
 
     public function contract() {
