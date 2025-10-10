@@ -31,6 +31,7 @@ return [
 ],
 
 
+
     /*
      * Allowed origins patterns (regex nếu cần).
      */

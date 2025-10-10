@@ -23,18 +23,17 @@ class User extends Authenticatable
         'password',
         'role',
         'created_at',
-        'deleted_at'
+        'deleted_at',
+        'address',
+        'id_card_front',
+        'id_card_back',
+        'bank_name',
+        'bank_account',
+        'verify_token',
+        'email_verified_at'
     ];
 
     protected $hidden = ['password'];
-
-    // ✅ Tự động hash password
-    public function setPasswordAttribute($value)
-    {
-        if (!empty($value) && !\Illuminate\Support\Facades\Hash::needsRehash($value)) {
-            $this->attributes['password'] = Hash::make($value);
-        }
-    }
 
     public function auctionProfiles()
     {
