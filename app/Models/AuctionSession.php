@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class AuctionSession extends Model
+class AuctionSession extends BaseModel
 {
     protected $table = 'AuctionSessions';
     protected $primaryKey = 'session_id';

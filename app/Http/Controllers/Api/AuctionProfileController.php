@@ -60,18 +60,23 @@ class AuctionProfileController extends Controller
         ]);
     }
 
-    public function index()
-    {
-        $profiles = AuctionProfile::with('session', 'item', 'user') // 🔹 thêm 'session'
-            ->orderBy('created_at', 'desc')
-            ->get();
+  public function index()
+{
+    $profiles = AuctionProfile::with(['session', 'item', 'user', 'depositPayment'])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($profile) {
+            $profile->is_paid = $profile->depositPayment && $profile->depositPayment->status === 'HoanTat';
+            return $profile;
+        });
 
-        return response()->json([
-            'status'  => true,
-            'message' => 'Danh sách hồ sơ đấu giá',
-            'profiles'=> $profiles
-        ]);
-    }
+    return response()->json([
+        'status'  => true,
+        'message' => 'Danh sách hồ sơ đấu giá',
+        'profiles'=> $profiles
+    ]);
+}
+
 
     public function updateStatus(Request $request, $id)
     {

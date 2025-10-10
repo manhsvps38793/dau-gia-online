@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Bid extends Model
+class Bid extends BaseModel
 {
     protected $table = 'Bids';
     protected $primaryKey = 'bid_id';

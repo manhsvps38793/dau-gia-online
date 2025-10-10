@@ -3,7 +3,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Report extends Model
+class Report extends BaseModel
 {
     protected $table = 'Reports';
     protected $primaryKey = 'report_id';

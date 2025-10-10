@@ -11,8 +11,9 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\CategoryController;
-use Illuminate\Http\Request;
-use App\Models\User;
+use App\Http\Controllers\Api\DepositPaymentController;
+
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -27,7 +28,7 @@ Route::get('/auction-items/{id}', [AuctionItemController::class, 'show']);
 Route::post('/auction-items', [AuctionItemController::class, 'store'])
     ->middleware('auth:sanctum');
 Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
-    ->middleware('auth:sanctum');
+    ->middleware(['auth:sanctum', 'role:Administrator,DauGiaVien']);
 Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
     ->middleware('auth:sanctum');
 
@@ -54,22 +55,6 @@ Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:
 // web.php
 Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
 
-// Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
-// Route::get('/verify-email/{token}', function ($token) {
-//     $user = User::where('verify_token', $token)->first();
-
-//     if (!$user) {
-//         return response()->json(['message' => 'Token không hợp lệ hoặc đã được xác thực'], 400);
-//     }
-
-//     $user->update([
-//         'verify_token' => null,
-//         'email_verified_at' => now(),
-//     ]);
-
-//     return response()->json(['message' => 'Xác thực thành công!']);
-// });
-
 // 📌 Người dùng nộp hồ sơ
 Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
     ->middleware(['auth:sanctum', 'role:User,Customer']);
@@ -78,6 +63,16 @@ Route::get('/auction-profiles', [AuctionProfileController::class, 'index']);
 // 📌 Chuyên viên TTC duyệt hồ sơ
 Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus']);
     // ->middleware(['auth:sanctum', 'role:ChuyenVienTTC']); test nhớ mở ra
+
+// thanh toán tiền cọc vái
+Route::prefix('deposit')->group(function () {
+    Route::post('/pay', [DepositPaymentController::class, 'pay']);
+    // Route::get('/pay', [DepositPaymentController::class, 'index']);
+    Route::get('/vnpay-return', [DepositPaymentController::class, 'vnpayReturn'])->name('deposit.vnpay.return');
+    Route::post('/refund', [DepositPaymentController::class, 'refund']);
+    Route::get('/status/{profile_id}', [DepositPaymentController::class, 'status']);
+});
+
 
 // 📌 Đấu giá viên tạo phiên
 Route::get('/auction-sessions', [AuctionSessionController::class, 'index']);

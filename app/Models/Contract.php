@@ -3,7 +3,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Contract extends Model
+class Contract extends BaseModel
 {
     protected $table = 'Contracts';
     protected $primaryKey = 'contract_id';
