@@ -158,6 +158,7 @@ class PaymentController extends Controller
             ]);
         });
 
-        return response()->json(['status'=>true,'message'=>'Thanh toán thành công!']);
+            return redirect('http://localhost:3000');
+
     }
 }

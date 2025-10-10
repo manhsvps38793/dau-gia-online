@@ -78,7 +78,7 @@ Route::get('/auction-sessions/{id}', [AuctionSessionController::class, 'show']);
 
 
 Route::post('/auction-sessions', [AuctionSessionController::class, 'store'])
-    ->middleware(['auth:sanctum', 'role:DauGiaVien']);
+    ->middleware(['auth:sanctum', 'role:DauGiaVien, Administrator']);
 
 Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update'])
     ->middleware(['auth:sanctum', 'role:DauGiaVien']);
