@@ -10,6 +10,11 @@ class BaseModel extends Model
     {
         // Ép kiểu rõ ràng để IDE/PHP hiểu là Carbon
         $carbonDate = Carbon::instance($date)->setTimezone('Asia/Ho_Chi_Minh');
-        return $carbonDate->format('Y-m-d\TH:i:sP');
+        return $carbonDate->format('Y-m-d\TH:i:s');
     }
+    protected function asDateTime($value)
+{
+    return parent::asDateTime($value)->setTimezone('Asia/Ho_Chi_Minh');
+}
+
 }
