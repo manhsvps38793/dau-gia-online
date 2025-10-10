@@ -64,7 +64,7 @@ class AuctionSessionController extends Controller
 
     public function index()
     {
-        $sessions = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])->get();
+        $sessions = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])->orderBy('session_id', 'desc')->get();
         return response()->json([
             'status' => true,
             'sessions' => $sessions

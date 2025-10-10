@@ -10,7 +10,7 @@ class Payment extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'contract_id', 'payer_id', 'amount', 'payment_date', 'method', 'status'
+        'contract_id', 'sender_id', 'amount', 'payment_date', 'method', 'status', 'receiver_id'
     ];
 
     public function contract() {
@@ -18,6 +18,6 @@ class Payment extends Model
     }
 
     public function user() {
-        return $this->belongsTo(User::class, 'payer_id');
+        return $this->belongsTo(User::class, 'sender_id');
     }
 }

@@ -83,6 +83,15 @@ class AuthController extends Controller
             'message' => 'Đăng xuất thành công'
         ]);
     }
+public function index()
+{
+    $users = User::orderByDesc('user_id')->get(); // Lấy tất cả user, sắp xếp theo user_id giảm dần
+
+    return response()->json([
+        'status' => true,
+        'users'  => $users
+    ]);
+}
 
     // GET /api/user
      public function user(Request $request)
