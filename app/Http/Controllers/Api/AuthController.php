@@ -6,19 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use App\Mail\VerifyEmailMail;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+     public function register(Request $request)
     {
-        // Validate
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
-            'email'     => 'required|email|unique:Users,email',
+            'email'     => 'required|email|unique:users,email',
             'phone'     => 'nullable|string|max:20',
-            'password'  => 'required|min:6|confirmed', // cần có password_confirmation
-            'role'      => 'in:User,Administrator,Customer,ChuyenVienTTC,DauGiaVien,DonViThuc,ToChucDauGia'
+            'password'  => 'required|min:6|confirmed',
+            'role'      => 'in:User,Administrator,Customer,ChuyenVienTTC,DauGiaVien,DonViThuc,ToChucDauGia',
+            'address'        => 'nullable|string|max:255',
+            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'id_card_back'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'bank_name'      => 'nullable|string|max:255',
+            'bank_account'   => 'nullable|string|max:50',
         ]);
 
         if ($validator->fails()) {
@@ -29,21 +36,53 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Tạo user
+        $verifyToken = Str::random(64);
+        $frontPath = $request->hasFile('id_card_front') ? $request->file('id_card_front')->store('id_cards', 'public') : null;
+        $backPath  = $request->hasFile('id_card_back') ? $request->file('id_card_back')->store('id_cards', 'public') : null;
+
         $user = User::create([
             'full_name' => $request->full_name,
             'email'     => $request->email,
             'phone'     => $request->phone,
             'password'  => $request->password,
             'role'      => $request->role ?? 'User',
-            'created_at'=> now()
+            'address'   => $request->address,
+            'id_card_front' => $frontPath,
+            'id_card_back'  => $backPath,
+            'bank_name'     => $request->bank_name,
+            'bank_account'  => $request->bank_account,
+            'verify_token'  => $verifyToken,
+            'created_at'    => now()
         ]);
+
+        $verifyUrl = url('/verify-email/' . $verifyToken);
+
+        // Gửi mail
+        Mail::to($user->email)->queue(new VerifyEmailMail($user->full_name, $verifyUrl));
+        // Mail::to($user->email)->send(new VerifyEmailMail($user->full_name, $verifyUrl));
+
 
         return response()->json([
             'status'  => true,
-            'message' => 'Đăng ký thành công',
+            'message' => 'Đăng ký thành công, vui lòng kiểm tra email để xác thực tài khoản.',
             'user'    => $user
         ], 201);
+    }
+
+    public function verifyEmail($token)
+    {
+        $user = User::where('verify_token', $token)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Liên kết xác thực không hợp lệ!'], 400);
+        }
+
+        $user->update([
+            'email_verified_at' => now(),
+            'verify_token' => null,
+        ]);
+
+        return response()->json(['message' => 'Email đã được xác thực thành công!']);
     }
 
      public function login(Request $request)
@@ -62,6 +101,14 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // Kiểm tra email đã verify chưa
+        if (is_null($user->email_verified_at)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tài khoản chưa được xác thực email. Vui lòng kiểm tra email để xác thực.'
+            ], 403); // 403 Forbidden
+        }
+
         // Tạo token
         $token = $user->createToken('api-token')->plainTextToken;
 
@@ -72,6 +119,7 @@ class AuthController extends Controller
             'token' => $token
         ]);
     }
+
 
     // POST /api/logout
     public function logout(Request $request)
@@ -108,11 +156,22 @@ public function index()
         $user = $request->user();
 
         $data = $request->validate([
-            'name'     => 'sometimes|string|max:255',
+            'full_name'     => 'sometimes|string|max:255',
             'email'    => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
-            'password' => 'sometimes|min:6|confirmed'
+            'password' => 'sometimes|min:6|confirmed',
+            'address'       => 'sometimes|string|max:255',
+            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'id_card_back'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'bank_name'     => 'sometimes|string|max:255',
+            'bank_account'  => 'sometimes|string|max:50',
         ]);
 
+        if ($request->hasFile('id_card_front')) {
+        $data['id_card_front'] = $request->file('id_card_front')->store('id_cards', 'public');
+        }
+        if ($request->hasFile('id_card_back')) {
+            $data['id_card_back'] = $request->file('id_card_back')->store('id_cards', 'public');
+        }
         if(isset($data['password'])){
             $data['password'] = Hash::make($data['password']);
         }

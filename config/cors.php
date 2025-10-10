@@ -14,17 +14,6 @@ return [
     /*
      * Allowed origins – KHÔNG dùng '*' nếu có credentials (như JS của bạn).
      */
-<<<<<<< HEAD
-    'allowed_origins' => [
-        'http://127.0.0.1:5500',  // Origin frontend (Live Server – kiểm tra F12 > Network)
-        'http://localhost:5500',   // Fallback
-         // Frontend chạy trên React/Vite hoặc Node dev server
-    'http://127.0.0.1:3001',
-    'http://localhost:3001',
-    'http://localhost:3000',
-        'http://127.0.0.1:3000',
-    ],
-=======
    'allowed_origins' => [
     // Frontend chạy trên VSCode Live Server
     'http://127.0.0.1:5500',
@@ -38,7 +27,6 @@ return [
     'http://127.0.0.1:3000',
 ],
 
->>>>>>> f2f72932f79c31228378b3620a891db10df9e82d
 
 
     /*

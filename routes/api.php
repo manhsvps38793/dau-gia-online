@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\CategoryController;
+use Illuminate\Http\Request;
+use App\Models\User;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -49,6 +51,24 @@ Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum')
 Route::get('/showuser', [AuthController::class, 'index']);
 // Sửa thông tin user
 Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:sanctum');
+// web.php
+Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
+
+// Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
+// Route::get('/verify-email/{token}', function ($token) {
+//     $user = User::where('verify_token', $token)->first();
+
+//     if (!$user) {
+//         return response()->json(['message' => 'Token không hợp lệ hoặc đã được xác thực'], 400);
+//     }
+
+//     $user->update([
+//         'verify_token' => null,
+//         'email_verified_at' => now(),
+//     ]);
+
+//     return response()->json(['message' => 'Xác thực thành công!']);
+// });
 
 // 📌 Người dùng nộp hồ sơ
 Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
