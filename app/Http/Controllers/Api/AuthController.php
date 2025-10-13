@@ -21,7 +21,7 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|min:6|confirmed', // cần password_confirmation
-            'role' => 'in:User,Administrator,Customer,ChuyenVienTTC,DauGiaVien,DonViThuc,ToChucDauGia',
+            'role' => 'in:User,Administrator,ChuyenVienTTC,DauGiaVien,DonViThuc,ToChucDauGia',
             'address' => 'nullable|string|max:255',
             'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
