@@ -98,11 +98,16 @@ Route::prefix('deposit')->group(function () {
 // =======================
 // 🕓 PHIÊN ĐẤU GIÁ (Đấu giá viên & Tổ chức đấu giá)
 // =======================
-Route::middleware(['auth:sanctum', 'role:DauGiaVien,ToChucDauGia'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:DauGiaVien,ToChucDauGia,Administrator,User'])->group(function () {
     Route::post('/auction-sessions', [AuctionSessionController::class, 'store']);
     Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
     Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destroy']);
+    // // Dừng & tiếp tục phiên đấu giá
+    Route::post('/auction-sessions/{id}/pause', [AuctionSessionController::class, 'pause']);
+    Route::post('/auction-sessions/{id}/resume', [AuctionSessionController::class, 'resume']);
+    Route::post('/auction-sessions/{sessionId}/kick/{userId}', [AuctionSessionController::class, 'kickUser']);
 });
+
 
 // =======================
 // 💸 LƯỢT TRẢ GIÁ (Người dùng tham gia đấu giá)

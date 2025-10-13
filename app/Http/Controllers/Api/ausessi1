@@ -214,51 +214,5 @@ class AuctionSessionController extends Controller
         'new_bid_end' => $newEnd,
     ]);
 }
-/**
- * 🧹 Kích người dùng ra khỏi phiên đấu giá
- */
-public function kickUser(Request $request, $sessionId, $userId)
-{
-    $session = AuctionSession::find($sessionId);
-    if (!$session) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Không tìm thấy phiên đấu giá'
-        ], 404);
-    }
-
-    $authUser = $request->user();
-
-    $profile = \App\Models\AuctionProfile::where('session_id', $sessionId)
-        ->where('user_id', $userId)
-        ->first();
-
-    if (!$profile) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Người dùng này không tham gia phiên đấu giá'
-        ], 404);
-    }
-
-
-    $reason = $request->input('reason', 'Gian lận đấu giá');
-    $updated = $profile->update([
-        'is_kicked'   => true,
-        'kick_reason' => $reason,
-        'status'      => 'BịTuChoi',
-    ]);
-
-    event(new \App\Events\AuctionSessionUpdated($session));
-
-    return response()->json([
-        'status'  => $updated,
-        'message' => $updated
-            ? 'Đã kích người dùng ra khỏi phiên đấu giá'
-            : 'Cập nhật trạng thái bị kick thất bại',
-        'profile' => $profile->fresh(),
-    ]);
-}
-
-
 
 }

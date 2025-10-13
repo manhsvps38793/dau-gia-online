@@ -17,6 +17,8 @@ class AuctionSession extends BaseModel
         'checkin_time'   => 'datetime',
         'bid_start'      => 'datetime',
         'bid_end'        => 'datetime',
+        'paused' => 'boolean',
+        'paused_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -34,6 +36,9 @@ class AuctionSession extends BaseModel
         'bid_start',
         'bid_end',
         'bid_step',
+        'remaining_time', // ✅ thêm
+        'paused',         // ✅ thêm
+        'paused_at',      // ✅ thêm
     ];
 
     public function item()
