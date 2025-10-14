@@ -137,15 +137,22 @@ class AuthController extends Controller
             'message' => 'Đăng xuất thành công'
         ]);
     }
-
+    
     // GET /api/user
-    public function user(Request $request)
+   public function user(Request $request)
     {
+        $user = $request->user();
+
         return response()->json([
             'status' => true,
-            'user' => $request->user()
+            'user' => [
+                ...$user->toArray(),
+                'id_card_front_url' => $user->id_card_front ? asset('storage/' . $user->id_card_front) : null,
+                'id_card_back_url' => $user->id_card_back ? asset('storage/' . $user->id_card_back) : null,
+            ]
         ]);
     }
+
 
     // PUT /api/user/update
     public function update(Request $request)
