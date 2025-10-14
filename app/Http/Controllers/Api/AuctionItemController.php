@@ -90,12 +90,6 @@ class AuctionItemController extends Controller
             return response()->json(['status' => false, 'message' => 'Sản phẩm đã bị xóa'], 404);
         }
 
-        // ✅ Kiểm tra quyền
-        $user = $request->user();
-        $allowedRoles = ['Administrator', 'ToChucDauGia'];
-        if ($item->owner_id !== $user->user_id && !in_array($user->role, $allowedRoles)) {
-            return response()->json(['status' => false, 'message' => 'Không có quyền sửa sản phẩm này'], 403);
-        }
 
         // ✅ Validate dữ liệu cập nhật
         $validated = $request->validate([

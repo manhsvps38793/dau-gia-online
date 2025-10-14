@@ -62,8 +62,7 @@ Route::middleware(['auth:sanctum', 'role:Administrator'])->group(function () {
 // 🧱 QUẢN LÝ TÀI SẢN (Admin + Đấu giá viên)
 // =======================
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/auction-items', [AuctionItemController::class, 'store'])
-        ->middleware('role:Administrator,DauGiaVien,ToChucDauGia');
+    Route::post('/auction-items', [AuctionItemController::class, 'store']);
     Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
         ->middleware('role:Administrator,DauGiaVien');
     Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
