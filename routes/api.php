@@ -12,7 +12,8 @@ use App\Http\Controllers\Api\{
     ReportController,
     NotificationController,
     CategoryController,
-    DepositPaymentController
+    DepositPaymentController,
+    EContractsController,
 };
 
 /*
@@ -152,3 +153,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/notifications', [NotificationController::class, 'createNotification'])
     ->middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC']);
+
+// =======================
+// 📜 HỢP ĐỒNG ĐIỆN TỬ
+// =======================
+Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC,User'])->group(function () {
+    Route::get('/econtracts/{id}', [EContractsController::class, 'show']);       // Chi tiết
+    Route::post('/econtracts', [EContractsController::class, 'store']);          // Tạo mới
+    Route::put('/econtracts/{id}', [EContractsController::class, 'update']);     // Cập nhật (ví dụ ký)
+    Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']); // Xóa
+});
+    Route::get('/econtracts', [EContractsController::class, 'index']);          
