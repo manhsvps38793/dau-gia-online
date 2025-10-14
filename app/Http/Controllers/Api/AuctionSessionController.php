@@ -8,6 +8,8 @@ use App\Models\AuctionSession;
 use Illuminate\Support\Facades\Validator;
 use App\Jobs\StartAuctionJob;
 use App\Jobs\EndAuctionJob;
+use App\Events\AuctionSessionUpdated;
+use Carbon\Carbon;
 
 class AuctionSessionController extends Controller
 {
@@ -64,7 +66,10 @@ class AuctionSessionController extends Controller
 
     public function index()
     {
-        $sessions = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])->orderBy('session_id', 'desc')->get();
+        $sessions = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])
+            ->orderBy('session_id', 'desc')
+            ->get();
+
         return response()->json([
             'status' => true,
             'sessions' => $sessions
@@ -73,7 +78,9 @@ class AuctionSessionController extends Controller
 
     public function show($id)
     {
-        $session = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])->findOrFail($id);
+        $session = AuctionSession::with(['item.owner', 'auctionOrg','profiles.user'])
+            ->findOrFail($id);
+
         return response()->json([
             'status' => true,
             'session' => $session
@@ -137,4 +144,121 @@ class AuctionSessionController extends Controller
             'message' => 'Xóa phiên đấu giá thành công'
         ]);
     }
+
+    /**
+     * Tạm dừng phiên đấu giá
+     */
+ public function pause($id)
+{
+    $session = AuctionSession::findOrFail($id);
+
+    if ($session->paused) {
+        return response()->json(['message' => 'Phiên đã tạm dừng rồi'], 400);
+    }
+
+    $now = Carbon::now();
+    $remaining = $now->diffInSeconds($session->bid_end, false); // ✅ đảo lại vị trí
+
+    if ($remaining <= 0) {
+        return response()->json(['message' => 'Phiên đã kết thúc'], 400);
+    }
+
+    $session->paused = true;
+    $session->paused_at = $now;
+    $session->remaining_time = $remaining;
+    $session->save();
+
+    event(new AuctionSessionUpdated($session));
+
+    return response()->json([
+        'message' => 'Đã tạm dừng phiên đấu giá',
+        'remaining_seconds' => $remaining,
+    ]);
+}
+
+
+
+    /**
+     * Tiếp tục phiên đấu giá
+     */
+   public function resume($id)
+{
+    $session = AuctionSession::findOrFail($id);
+
+    if (!$session->paused) {
+        return response()->json(['message' => 'Phiên không ở trạng thái tạm dừng'], 400);
+    }
+
+    $pausedAt = Carbon::parse($session->paused_at);
+    $endAt = Carbon::parse($session->bid_end);
+    $remaining = $session->remaining_time ?? $endAt->diffInSeconds($pausedAt, false);
+
+    if ($remaining <= 0) {
+        return response()->json(['message' => 'Phiên đã hết thời gian'], 400);
+    }
+
+    $newEnd = Carbon::now()->addSeconds($remaining);
+
+    $session->update([
+        'paused' => false,
+        'paused_at' => null,
+        'bid_end' => $newEnd,
+        'remaining_time' => null,
+    ]);
+
+    EndAuctionJob::dispatch($session->session_id)->delay($newEnd);
+    event(new AuctionSessionUpdated($session));
+
+    return response()->json([
+        'message' => 'Đã tiếp tục phiên đấu giá',
+        'new_bid_end' => $newEnd,
+    ]);
+}
+/**
+ * 🧹 Kích người dùng ra khỏi phiên đấu giá
+ */
+public function kickUser(Request $request, $sessionId, $userId)
+{
+    $session = AuctionSession::find($sessionId);
+    if (!$session) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Không tìm thấy phiên đấu giá'
+        ], 404);
+    }
+
+    $authUser = $request->user();
+
+    $profile = \App\Models\AuctionProfile::where('session_id', $sessionId)
+        ->where('user_id', $userId)
+        ->first();
+
+    if (!$profile) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Người dùng này không tham gia phiên đấu giá'
+        ], 404);
+    }
+
+
+    $reason = $request->input('reason', 'Gian lận đấu giá');
+    $updated = $profile->update([
+        'is_kicked'   => true,
+        'kick_reason' => $reason,
+        'status'      => 'BịTuChoi',
+    ]);
+
+    event(new \App\Events\AuctionSessionUpdated($session));
+
+    return response()->json([
+        'status'  => $updated,
+        'message' => $updated
+            ? 'Đã kích người dùng ra khỏi phiên đấu giá'
+            : 'Cập nhật trạng thái bị kick thất bại',
+        'profile' => $profile->fresh(),
+    ]);
+}
+
+
+
 }
