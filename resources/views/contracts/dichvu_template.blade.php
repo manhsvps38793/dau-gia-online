@@ -2,298 +2,304 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Hợp đồng dịch vụ đấu giá</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hợp đồng mua bán tài sản bán đấu giá</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
-        /* Font hỗ trợ tiếng Việt */
-        @font-face {
-            font-family: 'DejaVu Sans';
-            src: url({{ storage_path('fonts/DejaVuSans.ttf') }}) format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        body {
-            font-family: 'DejaVu Sans', sans-serif;
-            line-height: 1.6;
-            color: #2c3e50;
+        * {
             margin: 0;
             padding: 0;
-            background-color: #f8f9fa;
+            box-sizing: border-box;
+              font-family: 'DejaVu Sans', sans-serif !important;
         }
-
+        
+        body {
+            background-color: #f8f6f2;
+            padding: 30px 20px;
+            color: #333;
+            line-height: 1.6;
+            font-family: "DejaVu Sans", sans-serif !important;
+        }
+        
         .contract-container {
-            max-width: 800px;
-            margin: 30px auto;
-            background: white;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
+            max-width: 820px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 50px 45px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
         }
-
-        .contract-header {
-            background: linear-gradient(135deg, #1a5276 0%, #2c3e50 100%);
-            color: white;
-            padding: 25px 30px;
+        
+        .header {
             text-align: center;
-            position: relative;
+            margin-bottom: 40px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #d4af37;
         }
-
-        .contract-header:after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #e74c3c;
-        }
-
-        h1 {
-            font-size: 28px;
-            margin: 0 0 10px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .contract-subtitle {
+        
+        .header h1 {
             font-size: 18px;
-            margin: 0;
-            opacity: 0.9;
-            font-weight: 400;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            color: #1a3c6e;
         }
-
-        .contract-body {
-            padding: 30px;
-        }
-
-        h2 {
+        
+        .header h2 {
             font-size: 20px;
-            color: #2c3e50;
-            border-bottom: 2px solid #e74c3c;
-            padding-bottom: 8px;
-            margin-top: 25px;
-            margin-bottom: 15px;
+            text-transform: uppercase;
+            margin-bottom: 25px;
+            color: #b30000;
+            font-weight: bold;
         }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+        
+        .header p {
+            font-size: 16px;
+            margin-top: 15px;
         }
-
-        .info-item {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            border-radius: 6px;
-            border-left: 4px solid #3498db;
+        
+        .contract-number {
+            text-align: center;
+            margin-bottom: 35px;
+            padding: 15px 0;
+            background-color: #f9f9f9;
+            border-radius: 4px;
         }
-
-        .info-item strong {
-            display: block;
-            color: #2c3e50;
-            margin-bottom: 5px;
-            font-size: 14px;
+        
+        .contract-number p:first-child {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1a3c6e;
         }
-
-        .info-item span {
-            color: #34495e;
+        
+        .contract-number p:last-child {
             font-size: 16px;
         }
-
-        .highlight-box {
-            background: #fff8e1;
-            border: 1px solid #ffd54f;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 20px 0;
+        
+        .contract-info {
+            margin-bottom: 30px;
         }
-
-        .highlight-box h3 {
-            margin-top: 0;
-            color: #e67e22;
-            font-size: 18px;
+        
+        .contract-info p {
+            margin-bottom: 18px;
+            display: flex;
+            align-items: flex-end;
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        
+        .contract-info .label {
+            min-width: 380px;
+            display: inline-block;
         }
-
-        table thead {
-            background: #34495e;
-            color: white;
+        
+        .contract-info .field {
+            flex: 1;
+            border-bottom: 1px dotted #666;
+            margin-left: 15px;
+            min-height: 22px;
+            padding-bottom: 2px;
         }
-
-        table th {
-            padding: 12px 15px;
-            text-align: left;
-            font-weight: 600;
+        
+        .contract-content {
+            margin: 40px 0 35px;
+            padding: 25px;
+            background-color: #f9f9f9;
+            border-left: 3px solid #1a3c6e;
         }
-
-        table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e0e0e0;
+        
+        .contract-content p {
+            margin-bottom: 0;
+            text-align: justify;
+            line-height: 1.7;
         }
-
-        table tbody tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-
-        table tbody tr:hover {
-            background-color: #f1f8ff;
-        }
-
-        .signatures {
+        
+        .signature-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px dashed #ccc;
         }
-
+        
         .signature-box {
+            text-align: center;
             width: 45%;
-            text-align: center;
+            padding: 20px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background-color: #fdfdfd;
         }
-
-        .signature-line {
-            height: 1px;
-            background: #2c3e50;
-            margin: 60px 0 10px;
-            position: relative;
-        }
-
-        .signature-line:before {
-            content: "";
-            position: absolute;
-            top: -5px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #2c3e50;
-        }
-
-        .signature-name {
+        
+        .signature-box p:first-child {
             font-weight: bold;
-            margin-top: 5px;
+            margin-bottom: 25px;
+            font-size: 16px;
         }
-
-        .signature-title {
-            font-size: 14px;
-            color: #7f8c8d;
+        
+        .signature-box p:last-child {
+            margin-top: 40px;
+            font-style: italic;
+            color: #666;
         }
-
-        .contract-footer {
-            text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
-            color: #7f8c8d;
-            font-size: 14px;
-            border-top: 1px solid #e0e0e0;
+        
+        .notarization {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #d4af37;
         }
-
-        .watermark {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 80px;
-            color: rgba(0, 0, 0, 0.03);
-            pointer-events: none;
-            z-index: 1000;
+        
+        .notarization p {
+            margin-bottom: 18px;
+            text-align: justify;
+        }
+        
+        .notarization p:first-child {
             font-weight: bold;
-            white-space: nowrap;
+            margin-bottom: 20px;
+            color: #1a3c6e;
         }
-
+        
+        .notary-signature {
+            text-align: right;
+            margin-top: 50px;
+            padding: 20px 0;
+        }
+        
+        .notary-signature p:first-child {
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+        
+        .notary-signature p:last-child {
+            font-style: italic;
+            color: #666;
+        }
+        
         @media print {
             body {
-                background: white;
+                background-color: white;
+                padding: 0;
             }
+            
             .contract-container {
                 box-shadow: none;
-                margin: 0;
+                padding: 30px 25px;
+                border: none;
             }
-            .watermark {
-                display: block;
+            
+            .header {
+                border-bottom: 2px solid #000;
             }
+            
+            .contract-number {
+                background-color: transparent;
+            }
+            
+            .contract-content {
+                background-color: transparent;
+                border-left: 3px solid #000;
+            }
+            
+            .signature-box {
+                border: 1px solid #000;
+                background-color: transparent;
+            }
+            
+            .notarization {
+                border-top: 2px solid #000;
+            }
+        }
+        
+        /* Hiệu ứng tinh tế */
+        .contract-container {
+            position: relative;
+        }
+        
+        .contract-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(to right, #1a3c6e, #d4af37, #b30000);
+        }
+        
+        .watermark {
+            position: absolute;
+            opacity: 0.03;
+            font-size: 120px;
+            transform: rotate(-45deg);
+            top: 40%;
+            left: 10%;
+            color: #1a3c6e;
+            pointer-events: none;
+            z-index: 0;
         }
     </style>
 </head>
 <body>
-    <!-- Watermark (chỉ hiển thị khi in) -->
-    <div class="watermark">HỢP ĐỒNG ĐẤU GIÁ</div>
-
     <div class="contract-container">
-        <div class="contract-header">
-            <h1>HỢP ĐỒNG DỊCH VỤ ĐẤU GIÁ</h1>
-            <p class="contract-subtitle">Phiên đấu giá #{{ $session->session_id }}</p>
+        <div class="watermark">HỢP ĐỒNG</div>
+        
+        <div class="header">
+            <h1>CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
+            <h2>Độc lập – Tự do – Hạnh phúc</h2>
+            <p>Tỉnh, thành phố TP. Hồ Chí Minh, ngày 15 tháng 10 năm 2025</p>
         </div>
-
-        <div class="contract-body">
-            <div class="info-grid">
-                <div class="info-item">
-                    <strong>Người tạo phiên đấu giá</strong>
-                    <span>{{ $auction_org->name ?? 'Chưa xác định' }}</span>
-                </div>
-                <div class="info-item">
-                    <strong>Người sở hữu tài sản</strong>
-                    <span>{{ $owner->name ?? 'Chưa xác định' }}</span>
-                </div>
-                <div class="info-item">
-                    <strong>Thời gian đấu giá</strong>
-                    <span>{{ $session->start_time }} - {{ $session->end_time }}</span>
-                </div>
-                <div class="info-item">
-                    <strong>Giá cuối cùng</strong>
-                    <span>{{ number_format($contract->final_price) }} VND</span>
-                </div>
+        
+        <div class="contract-number">
+            <p>HỢP ĐỒNG MUA BÁN TÀI SẢN BÁN ĐẤU GIÁ</p>
+            <p>Số: HD-MB-{{ $session->session_id ?? '001' }}/2025</p>
+        </div>
+        
+        <div class="contract-info">
+            <p><span class="label">Tên người bán đấu giá</span><span class="field">{{ $auction_org->name ?? 'Công ty Đấu giá ABC' }}</span></p>
+            <p><span class="label">Địa chỉ</span><span class="field">{{ $auction_org->address ?? '123 Đường ABC, Quận 1, TP. HCM' }}</span></p>
+            <p><span class="label">Họ, tên người điều hành cuộc bán đấu giá</span><span class="field">Nguyễn Văn A</span></p>
+            <p><span class="label">Địa chỉ</span><span class="field">123 Đường ABC, Quận 1, TP. HCM</span></p>
+            <p><span class="label">Họ, tên đấu giá viên</span><span class="field">Trần Thị B</span></p>
+            <p><span class="label">Họ, tên người có tài sản bán đấu giá</span><span class="field">{{ $owner->name ?? 'Ông Lê Văn C' }}</span></p>
+            <p><span class="label">Địa chỉ</span><span class="field">{{ $owner->address ?? '456 Đường XYZ, Quận 3, TP. HCM' }}</span></p>
+            <p><span class="label">Họ, tên người mua được tài sản</span><span class="field">Bà Phạm Thị D</span></p>
+            <p><span class="label">Địa chỉ</span><span class="field">789 Đường DEF, Quận 7, TP. HCM</span></p>
+            <p><span class="label">Thời gian bán đấu giá</span><span class="field">{{ $session->start_time ?? '2025-10-01 09:00' }} - {{ $session->end_time ?? '2025-10-01 17:00' }}</span></p>
+            <p><span class="label">Địa điểm bán đấu giá</span><span class="field">Trực tuyến qua nền tảng đấu giá điện tử</span></p>
+            <p><span class="label">Tài sản bán đấu giá (có bản liệt kê, mô tả chi tiết kèm theo, nếu có)</span><span class="field">Mã tài sản: {{ $session->item->item_id ?? 'ID001' }}; Tên: {{ $session->item->name ?? 'Xe hơi Toyota Camry 2018' }}; Mô tả: {{ $session->item->description ?? 'Xe hơi cũ, tình trạng tốt, đăng ký lần đầu năm 2018' }} (Chi tiết kèm theo Phụ lục 1)</span></p>
+            <p><span class="label">Giá khởi điểm của tài sản</span><span class="field">{{ number_format($session->item->start_price ?? 500000000) }} VND</span></p>
+            <p><span class="label">Giá bán tài sản</span><span class="field">{{ number_format($contract->final_price ?? 600000000) }} VND</span></p>
+            <p><span class="label">Thời hạn thanh toán tiền mua tài sản</span><span class="field">Trong vòng 07 ngày kể từ ngày ký hợp đồng</span></p>
+            <p><span class="label">Phương thức thanh toán tiền mua tài sản</span><span class="field">Chuyển khoản ngân hàng hoặc tiền mặt</span></p>
+            <p><span class="label">Địa điểm thanh toán tiền mua tài sản</span><span class="field">Tài khoản ngân hàng của {{ $auction_org->name ?? 'Công ty Đấu giá ABC' }} hoặc văn phòng công ty</span></p>
+            <p><span class="label">Thời hạn giao tài sản</span><span class="field">Sau khi hoàn tất thanh toán đầy đủ</span></p>
+            <p><span class="label">Địa điểm giao tài sản</span><span class="field">Tại địa chỉ của người mua hoặc địa điểm thỏa thuận</span></p>
+            <p><span class="label">Trách nhiệm do vi phạm nghĩa vụ của các bên:</span><span class="field">Các bên chịu phạt 8% giá trị hợp đồng nếu vi phạm; chi tiết theo Điều {{ $session->regulation ?? '5' }} Quy định đấu giá</span></p>
+        </div>
+        
+        <div class="contract-content">
+            <p>Hợp đồng này được lập thành 4 bản có giá trị như nhau. Người bán đấu giá, người mua được tài sản bán đấu giá, người có tài sản bán đấu giá và cơ quan Nhà nước có thẩm quyền đăng ký quyền sở hữu tài sản, mỗi nơi giữ một bản.</p>
+        </div>
+        
+        <div class="signature-section">
+            <div class="signature-box">
+                <p>ĐẤU GIÁ VIÊN<br>Trần Thị B</p>
+                <p>(Ký, ghi rõ họ, tên và đóng dấu)</p>
             </div>
-
-            <div class="highlight-box">
-                <h3>Thông tin quan trọng</h3>
-                <p><strong>Quy định đấu giá:</strong> {{ $session->regulation }}</p>
-                <p><strong>Phương thức đấu giá:</strong> {{ $session->method }}</p>
-            </div>
-
-            <h2>Chi tiết tài sản đấu giá</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Mã tài sản</th>
-                        <th>Tên tài sản</th>
-                        <th>Mô tả</th>
-                        <th>Giá khởi điểm</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{{ $session->item->item_id ?? 'N/A' }}</td>
-                        <td>{{ $session->item->name ?? 'N/A' }}</td>
-                        <td>{{ $session->item->description ?? 'N/A' }}</td>
-                        <td>{{ number_format($session->item->start_price ?? 0) }} VND</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="signatures">
-                <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <div class="signature-name">{{ $auction_org->name ?? 'Người tạo phiên đấu giá' }}</div>
-                    <div class="signature-title">(Ký, ghi rõ họ tên và đóng dấu)</div>
-                </div>
-                <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <div class="signature-name">{{ $owner->name ?? 'Người sở hữu tài sản' }}</div>
-                    <div class="signature-title">(Ký, ghi rõ họ tên)</div>
-                </div>
+            
+            <div class="signature-box">
+                <p>NGƯỜI MUA ĐƯỢC TÀI SẢN<br>Bà Phạm Thị D</p>
+                <p>(Ký, ghi rõ họ, tên)</p>
             </div>
         </div>
-
-        <div class="contract-footer">
-            <p>Hợp đồng được tạo tự động vào {{ now()->format('d/m/Y H:i') }} | Trang 1/1</p>
+        
+        <div class="notarization">
+            <p>CHỨNG NHẬN CỦA PHÒNG CÔNG CHỨNG (nếu tài sản bán đấu giá là bất động sản):</p>
+            <p>Chứng nhận Hợp đồng mua bán tài sản bán đấu giá được ký kết vào hồi 14 giờ ngày 15 tháng 10 năm 2025 tại TP. Hồ Chí Minh; các bên ký kết Hợp đồng có năng lực hành vi dân sự đầy đủ; chữ ký của các bên trong Hợp đồng là đúng; nội dung thoả thuận của các bên phù hợp với quy định của Nghị định số 05/2005/NĐ-CP ngày 18/1/2005 của Chính phủ về bán đấu giá tài sản.</p>
+            
+            <div class="notary-signature">
+                <p>CÔNG CHỨNG VIÊN<br>Nguyễn Thị E</p>
+                <p>(Ký, ghi rõ họ tên và đóng dấu)</p>
+            </div>
         </div>
     </div>
 </body>

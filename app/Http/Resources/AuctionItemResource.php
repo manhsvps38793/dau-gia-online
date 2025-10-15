@@ -13,6 +13,7 @@ class AuctionItemResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'starting_price' => $this->starting_price,
+            'image_url' => $this->image_url,
             'status' => $this->status,
             'category' => $this->category ? $this->category->name : null,
             'owner' => $this->owner ? [
