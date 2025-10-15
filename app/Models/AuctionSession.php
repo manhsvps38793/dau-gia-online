@@ -69,5 +69,8 @@ public function profiles()
 {
     return $this->hasMany(AuctionProfile::class, 'session_id', 'session_id');
 }
-
+public function owner()
+{
+    return $this->belongsTo(User::class, 'owner_id', 'user_id');
+}
 }
