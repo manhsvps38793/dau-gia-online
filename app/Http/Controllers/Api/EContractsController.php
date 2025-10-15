@@ -14,7 +14,7 @@ class EContractsController extends Controller
 {
     public function index()
     {
-        $econtracts = EContracts::with(['contract', 'session', 'signer'])
+        $econtracts = EContracts::with(['contract', 'session.item', 'signer'])
             ->orderBy('econtract_id', 'desc') 
             ->get();
         return response()->json([
