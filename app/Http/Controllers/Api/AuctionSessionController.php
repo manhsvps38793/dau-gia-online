@@ -77,10 +77,18 @@ class AuctionSessionController extends Controller
             'session'  => $session,
             'contract' => $contract,
             'owner'    => $session->auction_org_id,
-            'auction_org' => User::find($session->auction_org_id)
+            'auction_org' => User::find($session->auction_org_id),
+            'defaultFont' => 'sans-serif', // auto fallback DejaVuSans
         ];
 
-        $pdf = PDF::loadView('contracts.dichvu_template', $pdfData);
+        // $pdf = PDF::loadView('contracts.dichvu_template', $pdfData);
+        $pdf = PDF::loadView('contracts.dichvu_template', $pdfData)
+            ->setOptions([
+                'defaultFont' => 'DejaVu Sans',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+            ]);
+
 
         // Đặt đường dẫn lưu vào public disk
         $fileName = 'contracts/contract_session_' . $session->session_id . '.pdf';

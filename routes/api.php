@@ -185,8 +185,9 @@ Route::post('/notifications', [NotificationController::class, 'createNotificatio
 // =======================
 Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC,User'])->group(function () {
     Route::get('/econtracts/{id}', [EContractsController::class, 'show']);       // Chi tiết
-    Route::post('/econtracts', [EContractsController::class, 'store']);          // Tạo mới
     Route::put('/econtracts/{id}', [EContractsController::class, 'update']);     // Cập nhật (ví dụ ký)
     Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']); // Xóa
+    Route::post('/econtracts', [EContractsController::class, 'store']);     
 });
-    Route::get('/econtracts', [EContractsController::class, 'index']);
+
+    Route::get('/econtracts', [EContractsController::class, 'index']);       
