@@ -39,8 +39,8 @@ class AuthController extends Controller
 
         $verifyToken = Str::random(64);
 
-        $frontPath = $request->hasFile('id_card_front') ? $request->file('id_card_front')->store('id_cards', 'public') : null;
-        $backPath = $request->hasFile('id_card_back') ? $request->file('id_card_back')->store('id_cards', 'public') : null;
+        $frontPath = $request->hasFile('id_card_front') ? $request->file('id_card_front')->store('idcards', 'public') : null;
+        $backPath = $request->hasFile('id_card_back') ? $request->file('id_card_back')->store('idcards', 'public') : null;
 
         $user = User::create([
             'full_name' => $request->full_name,
@@ -137,15 +137,22 @@ class AuthController extends Controller
             'message' => 'Đăng xuất thành công'
         ]);
     }
-
+    
     // GET /api/user
-    public function user(Request $request)
+   public function user(Request $request)
     {
+        $user = $request->user();
+
         return response()->json([
             'status' => true,
-            'user' => $request->user()
+            'user' => [
+                ...$user->toArray(),
+                'id_card_front_url' => $user->id_card_front ? asset('storage/' . $user->id_card_front) : null,
+                'id_card_back_url' => $user->id_card_back ? asset('storage/' . $user->id_card_back) : null,
+            ]
         ]);
     }
+
 
     // PUT /api/user/update
     public function update(Request $request)
@@ -164,10 +171,10 @@ class AuthController extends Controller
         ]);
 
         if ($request->hasFile('id_card_front')) {
-            $data['id_card_front'] = $request->file('id_card_front')->store('id_cards', 'public');
+            $data['id_card_front'] = $request->file('id_card_front')->store('idcards', 'public');
         }
         if ($request->hasFile('id_card_back')) {
-            $data['id_card_back'] = $request->file('id_card_back')->store('id_cards', 'public');
+            $data['id_card_back'] = $request->file('id_card_back')->store('idcards', 'public');
         }
         if(isset($data['password'])){
             $data['password'] = Hash::make($data['password']);

@@ -14,7 +14,8 @@ use App\Http\Controllers\Api\{
     CategoryController,
     DepositPaymentController,
     EContractsController,
-
+    NewsController,
+    NewsCategoryController
 };
 
 /*
@@ -22,6 +23,25 @@ use App\Http\Controllers\Api\{
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// news
+// 📋 Lấy danh sách tất cả tin tức
+Route::get('/news', [NewsController::class, 'index']);
+// ➕ Thêm tin tức mới
+Route::post('/news', [NewsController::class, 'store']);
+
+// 👀 Xem chi tiết một tin tức theo ID
+Route::get('/news/{id}', [NewsController::class, 'show']);
+
+// ✏️ Cập nhật tin tức
+Route::put('/news/{id}', [NewsController::class, 'update']);
+Route::patch('/news/{id}', [NewsController::class, 'update']);
+
+// 🗑️ Xóa tin tức
+Route::delete('/news/{id}', [NewsController::class, 'destroy']);
+
+
+Route::get('/news-categories', [NewsCategoryController::class, 'index']);
 
 // =======================
 // 🟢 PUBLIC ROUTES (Ai cũng xem được)
@@ -37,6 +57,7 @@ Route::get('/contracts', [ContractController::class, 'index']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']);
 Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
+Route::apiResource('news', NewsController::class);
 
 // =======================
 // 🟡 AUTHENTICATION
@@ -163,9 +184,6 @@ Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC,
     Route::get('/econtracts/{id}', [EContractsController::class, 'show']);       // Chi tiết
     Route::put('/econtracts/{id}', [EContractsController::class, 'update']);     // Cập nhật (ví dụ ký)
     Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']); // Xóa
-});
     Route::post('/econtracts', [EContractsController::class, 'store']);     
-    
-    
-    // Tạo mới
-   
+});
+
