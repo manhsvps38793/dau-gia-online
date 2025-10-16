@@ -90,6 +90,7 @@ Route::middleware(['auth:sanctum', 'role:Administrator'])->group(function () {
 // =======================
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/auction-items', [AuctionItemController::class, 'store']);
+
     Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
         ->middleware('role:Administrator,DauGiaVien');
     Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
@@ -100,20 +101,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
 // 📑 HỒ SƠ ĐẤU GIÁ (Người dùng, Chuyên viên TTC duyệt)
 // =======================
 Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
-    ->middleware(['auth:sanctum', 'role:User']);
+    ->middleware(['auth:sanctum', 'role:User,Administrator']);
 
 Route::get('/auction-profiles', [AuctionProfileController::class, 'index'])
     ->middleware(['auth:sanctum']);
 
 Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus'])
-    ->middleware(['auth:sanctum', 'role:ChuyenVienTTC']);
+    ->middleware(['auth:sanctum', 'role:ChuyenVienTTC,Administrator']);
 
 // =======================
 // 💰 TIỀN ĐẶT CỌC (Người dùng nộp, Admin & TTC xử lý)
 // =======================
 Route::prefix('deposit')->group(function () {
     Route::post('/pay', [DepositPaymentController::class, 'pay'])
-        ->middleware(['auth:sanctum', 'role:User']);
+        ->middleware(['auth:sanctum', 'role:User,Administrator']);
     Route::get('/vnpay-return', [DepositPaymentController::class, 'vnpayReturn'])->name('deposit.vnpay.return');
     Route::post('/refund', [DepositPaymentController::class, 'refund'])
         ->middleware(['auth:sanctum', 'role:Administrator,ChuyenVienTTC']);
@@ -139,7 +140,7 @@ Route::middleware(['auth:sanctum', 'role:DauGiaVien,ToChucDauGia,Administrator']
 // 💸 LƯỢT TRẢ GIÁ (Người dùng tham gia đấu giá)
 // =======================
 Route::post('/bids', [BidsController::class, 'placeBid'])
-    ->middleware(['auth:sanctum', 'role:User']);
+    ->middleware(['auth:sanctum', 'role:User,Administrator']);
 
 // =======================
 // 📜 HỢP ĐỒNG & THANH TOÁN
@@ -147,11 +148,11 @@ Route::post('/bids', [BidsController::class, 'placeBid'])
 
 // Thanh toán nội bộ
 Route::post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment'])
-    ->middleware(['auth:sanctum', 'role:User']);
+    ->middleware(['auth:sanctum', 'role:User,Administrator']);
 
 // Thanh toán online qua VNPAY
 Route::post('/contracts/{contract_id}/pay-online', [PaymentController::class, 'payOnline'])
-    ->middleware(['auth:sanctum', 'role:User']);
+    ->middleware(['auth:sanctum', 'role:User,Administrator']);
 
 // Danh sách & chi tiết thanh toán
 Route::get('/payments', [PaymentController::class, 'listPayments'])
@@ -184,10 +185,23 @@ Route::post('/notifications', [NotificationController::class, 'createNotificatio
 // 📜 HỢP ĐỒNG ĐIỆN TỬ
 // =======================
 Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC,User'])->group(function () {
+    Route::get('/econtracts', [EContractsController::class, 'index']);       
     Route::get('/econtracts/{id}', [EContractsController::class, 'show']);       // Chi tiết
     Route::put('/econtracts/{id}', [EContractsController::class, 'update']);     // Cập nhật (ví dụ ký)
     Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']); // Xóa
     Route::post('/econtracts', [EContractsController::class, 'store']);     
 });
 
-    Route::get('/econtracts', [EContractsController::class, 'index']);       
+// =======================
+// 🖼️ ẢNH PHỤ SẢN PHẨM (AuctionItem)
+// =======================
+Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien'])->group(function () {
+    // Lấy danh sách ảnh phụ
+    Route::get('/auction-items/{itemId}/images', [AuctionItemController::class, 'images']);
+
+    // Xóa ảnh phụ
+    Route::delete('/auction-items/images/{imageId}', [AuctionItemController::class, 'removeImage']);
+
+    // Đặt ảnh phụ là ảnh chính
+    Route::put('/auction-items/{itemId}/images/{imageId}/primary', [AuctionItemController::class, 'setPrimaryImage']);
+});

@@ -5,74 +5,101 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\AuctionItem;
+use App\Models\ItemImage;
 use App\Http\Resources\AuctionItemResource;
+use App\Http\Resources\ItemImageResource;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 class AuctionItemController extends Controller
 {
-    // 🟢 CREATE (Thêm sản phẩm)
+    // Danh sách sản phẩm (chưa xóa)
+   public function index()
+    {
+        $items = AuctionItem::with('category')->whereNull('deleted_at')->orderByDesc('created_at')->get();
+        return AuctionItemResource::collection($items);
+    }
+
+
+    // Tạo mới
     public function store(Request $request)
     {
         $request->validate([
             'category_id'    => 'required|exists:Categories,category_id',
             'owner_id'       => 'required|exists:Users,user_id',
+            'auction_org_id' => 'nullable|integer',
             'name'           => 'required|string|max:255',
             'description'    => 'nullable|string',
             'starting_price' => 'required|numeric|min:1',
             'image'          => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
-            'status'         => 'in:ChoDuyet,ChoDauGia,DangDauGia,DaBan,Huy'
+            'url_file'       => 'nullable|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120',
+            'extra_images.*' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+            'status'         => ['nullable', Rule::in(['ChoDuyet','ChoDauGia','DangDauGia','DaBan','Huy'])],
         ]);
 
-        // ✅ Lưu file hình ảnh nếu có
-        $imageUrl = null;
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('auction_images', 'public');
-            $imageUrl = Storage::url($path);
+        DB::beginTransaction();
+        try {
+            // Image chính
+            $imageUrl = null;
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('auction_images', 'public');
+                $imageUrl = Storage::url($path);
+            }
+
+            // File tài liệu
+            $fileUrl = null;
+            if ($request->hasFile('url_file')) {
+                $path = $request->file('url_file')->store('auction_files', 'public');
+                $fileUrl = Storage::url($path);
+            }
+
+            // Tạo item
+            $item = AuctionItem::create([
+                'category_id'    => $request->category_id,
+                'owner_id'       => $request->owner_id,
+                'auction_org_id' => $request->auction_org_id,
+                'name'           => $request->name,
+                'description'    => $request->description,
+                'starting_price' => $request->starting_price,
+                'image_url'      => $imageUrl,
+                'url_file'       => $fileUrl,
+                'status'         => $request->status ?? 'ChoDuyet',
+            ]);
+
+            // Thêm ảnh phụ nếu có
+            if ($request->hasFile('extra_images')) {
+                foreach ($request->file('extra_images') as $file) {
+                    $p = $file->store('auction_images', 'public');
+                    ItemImage::create([
+                        'item_id' => $item->item_id,
+                        'image_url' => Storage::url($p),
+                        'is_primary' => false,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            broadcast(new \App\Events\ItemCreated($item))->toOthers();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Tạo sản phẩm thành công',
+                'item' => new AuctionItemResource($item->load('images','category','owner'))
+            ], 201);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['status' => false, 'message' => 'Lỗi khi tạo sản phẩm', 'error' => $e->getMessage()], 500);
         }
-
-        // ✅ Tạo sản phẩm
-        $item = AuctionItem::create([
-            'category_id'    => $request->category_id,
-            'owner_id'       => $request->owner_id,
-            'name'           => $request->name,
-            'description'    => $request->description,
-            'starting_price' => $request->starting_price,
-            'image_url'      => $imageUrl,
-            'status'         => $request->status ?? 'ChoDuyet',
-            'created_at'     => now(),
-        ]);
-
-        // 🟢 Realtime broadcast
-        broadcast(new \App\Events\ItemCreated($item))->toOthers();
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Tạo sản phẩm thành công',
-            'item'    => new AuctionItemResource($item),
-        ], 201);
     }
 
-    // 🟡 LIST (Danh sách)
-    public function index()
-    {
-        $items = AuctionItem::with('category')
-            ->whereNull('deleted_at')
-            ->orderByDesc('created_at')
-            ->get();
-
-        return AuctionItemResource::collection($items);
-    }
-
-    // 🟣 SHOW (Chi tiết sản phẩm)
+    // Chi tiết sản phẩm
+    // Chi tiết sản phẩm
     public function show($id)
     {
-        $item = AuctionItem::with([
-            'category',
-            'owner',
-            'sessions.auctionOrg',
-            'sessions.bids.user',
-            'sessions.contract'
-        ])->findOrFail($id);
+        $item = AuctionItem::with(['category','owner','sessions.auctionOrg','sessions.bids.user','sessions.contract','images'])
+            ->findOrFail($id);
 
         if ($item->deleted_at) {
             return response()->json(['status' => false, 'message' => 'Sản phẩm không tồn tại'], 404);
@@ -81,8 +108,8 @@ class AuctionItemController extends Controller
         return new AuctionItemResource($item);
     }
 
-    // 🟠 UPDATE (Cập nhật)
-    public function update(Request $request, $id)
+    // Cập nhật
+     public function update(Request $request, $id)
     {
         $item = AuctionItem::findOrFail($id);
 
@@ -90,44 +117,71 @@ class AuctionItemController extends Controller
             return response()->json(['status' => false, 'message' => 'Sản phẩm đã bị xóa'], 404);
         }
 
-
-        // ✅ Validate dữ liệu cập nhật
         $validated = $request->validate([
             'category_id'    => 'sometimes|exists:Categories,category_id',
+            'auction_org_id' => 'nullable|integer',
             'name'           => 'sometimes|string|max:255',
             'description'    => 'nullable|string',
             'starting_price' => 'sometimes|numeric|min:1',
             'image'          => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
-            'status'         => 'sometimes|in:ChoDuyet,ChoDauGia,DangDauGia,DaBan,Huy'
+            'url_file'       => 'nullable|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120',
+            'extra_images.*' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+            'status'         => ['sometimes', Rule::in(['ChoDuyet','ChoDauGia','DangDauGia','DaBan','Huy'])],
         ]);
 
-        // ✅ Upload ảnh mới nếu có
-        if ($request->hasFile('image')) {
-            // Xóa ảnh cũ nếu có
-            if ($item->image_url && str_contains($item->image_url, '/storage/')) {
-                $oldPath = str_replace('/storage/', '', $item->image_url);
-                Storage::disk('public')->delete($oldPath);
+        DB::beginTransaction();
+        try {
+            // Image chính
+            if ($request->hasFile('image')) {
+                if ($item->image_url && str_contains($item->image_url, '/storage/')) {
+                    $oldPath = ltrim(str_replace('/storage/', '', $item->image_url), '/');
+                    Storage::disk('public')->delete($oldPath);
+                }
+                $p = $request->file('image')->store('auction_images', 'public');
+                $validated['image_url'] = Storage::url($p);
             }
 
-            $path = $request->file('image')->store('auction_images', 'public');
-            $validated['image_url'] = Storage::url($path);
+            // File tài liệu
+            if ($request->hasFile('url_file')) {
+                if ($item->url_file && str_contains($item->url_file, '/storage/')) {
+                    $oldFile = ltrim(str_replace('/storage/', '', $item->url_file), '/');
+                    Storage::disk('public')->delete($oldFile);
+                }
+                $p = $request->file('url_file')->store('auction_files', 'public');
+                $validated['url_file'] = Storage::url($p);
+            }
+
+            $item->fill($validated);
+            $item->save();
+
+            // Ảnh phụ
+            if ($request->hasFile('extra_images')) {
+                foreach ($request->file('extra_images') as $file) {
+                    $path = $file->store('auction_images', 'public');
+                    ItemImage::create([
+                        'item_id' => $item->item_id,
+                        'image_url' => Storage::url($path),
+                        'is_primary' => false,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            broadcast(new \App\Events\ItemUpdated($item))->toOthers();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Cập nhật sản phẩm thành công',
+                'item' => new AuctionItemResource($item->load('images','category','owner'))
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['status' => false, 'message' => 'Lỗi khi cập nhật sản phẩm', 'error' => $e->getMessage()], 500);
         }
-
-        // ✅ Cập nhật thông tin
-        $item->fill($validated);
-        $item->save();
-
-        // 🔔 Broadcast realtime
-        broadcast(new \App\Events\ItemUpdated($item))->toOthers();
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Cập nhật sản phẩm thành công',
-            'item'    => new AuctionItemResource($item)
-        ]);
     }
 
-    // 🔴 DESTROY (Xóa mềm)
+    // Xóa mềm sản phẩm
     public function destroy(Request $request, $id)
     {
         $item = AuctionItem::findOrFail($id);
@@ -142,13 +196,56 @@ class AuctionItemController extends Controller
             return response()->json(['status' => false, 'message' => 'Không có quyền xóa sản phẩm này'], 403);
         }
 
+        // đặt deleted_at, đổi trạng thái
         $item->deleted_at = now();
         $item->status = 'Huy';
         $item->save();
 
-        return response()->json([
-            'status'  => true,
-            'message' => 'Xóa sản phẩm thành công'
-        ]);
+        return response()->json(['status' => true, 'message' => 'Xóa sản phẩm thành công']);
+    }
+
+    // Xóa 1 ảnh phụ theo id
+    public function removeImage(Request $request, $imageId)
+    {
+        $img = ItemImage::findOrFail($imageId);
+        // xóa file vật lý nếu lưu trong storage
+        if ($img->image_url && str_contains($img->image_url, '/storage/')) {
+            $oldPath = ltrim(str_replace('/storage/', '', $img->image_url), '/');
+            Storage::disk('public')->delete($oldPath);
+        }
+        $img->delete();
+        return response()->json(['status' => true, 'message' => 'Xóa ảnh phụ thành công']);
+    }
+
+    // Đặt 1 ảnh phụ là ảnh chính (hoặc hủy)
+    public function setPrimaryImage(Request $request, $itemId, $imageId)
+    {
+        $item = AuctionItem::findOrFail($itemId);
+        $img = ItemImage::where('item_id', $itemId)->where('image_id', $imageId)->firstOrFail();
+
+        // bắt đầu transaction: đặt tất cả is_primary false, set true cho ảnh chọn
+        DB::beginTransaction();
+        try {
+            ItemImage::where('item_id', $itemId)->update(['is_primary' => false]);
+            $img->is_primary = true;
+            $img->save();
+
+            // cập nhật image_url của item để trùng với ảnh chính
+            $item->image_url = $img->image_url;
+            $item->save();
+
+            DB::commit();
+            return response()->json(['status' => true, 'message' => 'Đặt ảnh chính thành công', 'image' => new ItemImageResource($img)]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['status' => false, 'message' => 'Lỗi khi đặt ảnh chính'], 500);
+        }
+    }
+
+    // Lấy danh sách ảnh phụ của 1 item
+    public function images($itemId)
+    {
+        $images = ItemImage::where('item_id', $itemId)->orderByDesc('is_primary')->get();
+        return ItemImageResource::collection($images);
     }
 }
