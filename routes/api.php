@@ -42,6 +42,10 @@ Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
 
 Route::get('/news-categories', [NewsCategoryController::class, 'index']);
+Route::post('/news-categories', [NewsCategoryController::class, 'store']);
+Route::get('/news-categories/{id}', [NewsCategoryController::class, 'show']);
+Route::put('/news-categories/{id}', [NewsCategoryController::class, 'update']);
+Route::delete('/news-categories/{id}', [NewsCategoryController::class, 'destroy']);
 
 // =======================
 // 🟢 PUBLIC ROUTES (Ai cũng xem được)

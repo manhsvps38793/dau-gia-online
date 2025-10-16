@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\News;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class NewsController extends Controller
 {
@@ -20,30 +21,41 @@ class NewsController extends Controller
         return response()->json($news);
     }
 
-    /**
-     * ➕ Thêm tin tức mới
-     */
-    public function store(Request $request)
+
+
+   public function store(Request $request)
     {
         $data = $request->validate([
             'category_id' => 'required|exists:news_categories,id',
             'title' => 'required|string|max:255',
-            'thumbnail' => 'nullable|string',
             'content' => 'required',
             'author' => 'nullable|string|max:255',
             'is_published' => 'boolean',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        if ($request->hasFile('thumbnail')) {
+            $file = $request->file('thumbnail');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('news', $filename, 'public');
+
+            // Dùng Storage::url() để tự tạo URL public chính xác
+            $data['thumbnail'] = Storage::url('news/' . $filename);
+        }
+
+
+
         $news = News::create($data);
+        
+
         return response()->json([
             'message' => 'Thêm tin tức thành công!',
             'data' => $news
         ], 201);
     }
 
-    /**
-     * 👀 Xem chi tiết tin tức theo ID
-     */
+
+
     public function show($id)
     {
         $news = News::with('category')->find($id);
@@ -68,17 +80,36 @@ class NewsController extends Controller
         $data = $request->validate([
             'category_id' => 'sometimes|exists:news_categories,id',
             'title' => 'sometimes|string|max:255',
-            'thumbnail' => 'nullable|string',
             'content' => 'sometimes',
             'author' => 'nullable|string|max:255',
             'is_published' => 'boolean',
+            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
+
+        // 📸 Upload ảnh mới (và xóa ảnh cũ)
+        if ($request->hasFile('thumbnail')) {
+            // Xóa ảnh cũ (nếu có)
+            if ($news->thumbnail) {
+                $oldPath = str_replace('/storage/', 'public/', $news->thumbnail);
+                if (Storage::exists($oldPath)) {
+                    Storage::delete($oldPath);
+                }
+            }
+
+            // Upload ảnh mới vào thư mục public/news
+            $file = $request->file('thumbnail');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('news', $filename, 'public'); // đúng chuẩn
+
+            // Lưu URL public của ảnh
+            $data['thumbnail'] = Storage::url('news/' . $filename);
+        }
 
         $news->update($data);
 
         return response()->json([
             'message' => 'Cập nhật tin tức thành công!',
-            'data' => $news
+            'data' => $news->load('category')
         ]);
     }
 
@@ -90,6 +121,11 @@ class NewsController extends Controller
         $news = News::find($id);
         if (!$news) {
             return response()->json(['message' => 'Không tìm thấy tin tức'], 404);
+        }
+
+        // Xóa ảnh nếu có
+        if ($news->thumbnail && Storage::exists('public/news/' . $news->thumbnail)) {
+            Storage::delete('public/news/' . $news->thumbnail);
         }
 
         $news->delete();
