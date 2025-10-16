@@ -1,6 +1,6 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Api\{
     AuctionItemController,
     AuthController,
@@ -120,7 +120,7 @@ Route::prefix('deposit')->group(function () {
 // =======================
 // 🕓 PHIÊN ĐẤU GIÁ (Đấu giá viên & Tổ chức đấu giá)
 // =======================
-Route::middleware(['auth:sanctum', 'role:DauGiaVien,ToChucDauGia,Administrator,User'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:DauGiaVien,ToChucDauGia,Administrator'])->group(function () {
     Route::post('/auction-sessions', [AuctionSessionController::class, 'store']);
     Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
     Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destroy']);
