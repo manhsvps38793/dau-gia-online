@@ -95,7 +95,6 @@ class AuctionItemController extends Controller
     }
 
     // Chi tiết sản phẩm
-    // Chi tiết sản phẩm
     public function show($id)
     {
         $item = AuctionItem::with(['category','owner','sessions.auctionOrg','sessions.bids.user','sessions.contract','images'])
