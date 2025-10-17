@@ -14,12 +14,23 @@ use Illuminate\Support\Facades\DB;
 class AuctionItemController extends Controller
 {
     // Danh sách sản phẩm (chưa xóa)
-   public function index()
+   public function index(Request $request)
     {
-        $items = AuctionItem::with('category')->whereNull('deleted_at')->orderByDesc('created_at')->get();
+        // Tạo query cơ bản, kèm category và owner
+        $query = AuctionItem::with(['category', 'owner'])
+            ->whereNull('deleted_at');
+
+        // 🔍 Nếu có truyền owner_id -> lọc theo chủ sở hữu
+        if ($request->has('owner_id')) {
+            $query->where('owner_id', $request->owner_id);
+        }
+
+        // 🕒 Sắp xếp mới nhất
+        $items = $query->orderByDesc('created_at')->get();
+
+        // Trả về dữ liệu resource chuẩn
         return AuctionItemResource::collection($items);
     }
-
 
     // Tạo mới
     public function store(Request $request)
@@ -94,7 +105,7 @@ class AuctionItemController extends Controller
         }
     }
 
-    // Chi tiết sản phẩm
+
     public function show($id)
     {
         $item = AuctionItem::with(['category','owner','sessions.auctionOrg','sessions.bids.user','sessions.contract','images'])

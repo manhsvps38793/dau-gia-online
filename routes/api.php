@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\{
 */
 
 // news
+Route::middleware(['auth:sanctum', 'role:Administrator'])->group(function () {
 // 📋 Lấy danh sách tất cả tin tức
 Route::get('/news', [NewsController::class, 'index']);
 // ➕ Thêm tin tức mới
@@ -39,7 +40,7 @@ Route::patch('/news/{id}', [NewsController::class, 'update']);
 
 // 🗑️ Xóa tin tức
 Route::delete('/news/{id}', [NewsController::class, 'destroy']);
-
+});
 
 Route::get('/news-categories', [NewsCategoryController::class, 'index']);
 Route::post('/news-categories', [NewsCategoryController::class, 'store']);
@@ -185,12 +186,14 @@ Route::post('/notifications', [NotificationController::class, 'createNotificatio
 // 📜 HỢP ĐỒNG ĐIỆN TỬ
 // =======================
 Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC,User'])->group(function () {
-    Route::get('/econtracts', [EContractsController::class, 'index']);       
+    Route::get('/econtracts', [EContractsController::class, 'index']);
     Route::get('/econtracts/{id}', [EContractsController::class, 'show']);       // Chi tiết
     Route::put('/econtracts/{id}', [EContractsController::class, 'update']);     // Cập nhật (ví dụ ký)
     Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']); // Xóa
-    Route::post('/econtracts', [EContractsController::class, 'store']);     
+    Route::post('/econtracts', [EContractsController::class, 'store']);
 });
+
+    Route::get('/econtracts', [EContractsController::class, 'index']);
 
 // =======================
 // 🖼️ ẢNH PHỤ SẢN PHẨM (AuctionItem)
@@ -205,3 +208,4 @@ Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien'])->group(func
     // Đặt ảnh phụ là ảnh chính
     Route::put('/auction-items/{itemId}/images/{imageId}/primary', [AuctionItemController::class, 'setPrimaryImage']);
 });
+

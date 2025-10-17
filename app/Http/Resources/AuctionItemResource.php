@@ -25,6 +25,7 @@ class AuctionItemResource extends JsonResource
                 'name'  => $this->owner->full_name,
                 'email' => $this->owner->email,
             ] : null,
+            'created_at' => $this->created_at,
 
             'images' => $this->whenLoaded('images', function () {
                 return $this->images->map(fn($img) => [
