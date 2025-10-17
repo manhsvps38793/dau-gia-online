@@ -21,7 +21,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
-        'role',
+        'role_id',
         'created_at',
         'deleted_at',
         'address',
@@ -46,4 +46,23 @@ class User extends Authenticatable
        $carbonDate = Carbon::instance($date)->setTimezone('Asia/Ho_Chi_Minh');
         return $carbonDate->format('Y-m-d\TH:i:sP');
     }
+    public function role()
+{
+    return $this->belongsTo(Role::class, 'role_id', 'role_id');
+}
+
+// Lấy tất cả permission từ role + user
+public function permissions()
+{
+    $rolePermissions = $this->role ? $this->role->permissions : collect();
+    $userPermissions = $this->hasMany(UserPermission::class, 'user_id', 'user_id')->with('permission')->get()->pluck('permission');
+    return $rolePermissions->merge($userPermissions)->unique('permission_id');
+}
+public function hasPermission($permissionName)
+{
+    if (!$this->role) return false;
+
+    return $this->role->permissions->contains('name', $permissionName);
+}
+
 }

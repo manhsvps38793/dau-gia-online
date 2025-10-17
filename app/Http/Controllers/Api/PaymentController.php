@@ -29,7 +29,7 @@ class PaymentController extends Controller
         }
 
         DB::transaction(function() use ($request, $contract){
-            $payment = Payment::create([
+            $payment = Payment::create([    
                 'contract_id' => $contract->contract_id,
                 'profile_id'  => $contract->profile_id,
                 'sender_id'   => $request->user()->user_id,

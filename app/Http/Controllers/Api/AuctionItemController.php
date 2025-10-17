@@ -200,11 +200,6 @@ class AuctionItemController extends Controller
             return response()->json(['status' => false, 'message' => 'Sản phẩm đã bị xóa'], 404);
         }
 
-        $user = $request->user();
-        $allowedRoles = ['Administrator', 'ToChucDauGia'];
-        if ($item->owner_id !== $user->user_id && !in_array($user->role, $allowedRoles)) {
-            return response()->json(['status' => false, 'message' => 'Không có quyền xóa sản phẩm này'], 403);
-        }
 
         // đặt deleted_at, đổi trạng thái
         $item->deleted_at = now();

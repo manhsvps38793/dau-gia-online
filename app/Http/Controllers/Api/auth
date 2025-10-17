@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Role;
-use App\Models\UserPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -22,8 +20,8 @@ class AuthController extends Controller
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
-            'password' => 'required|min:6|confirmed',
-            'role_id' => 'nullable|exists:Roles,role_id', // cho admin chỉ định role
+            'password' => 'required|min:6|confirmed', // cần password_confirmation
+            'role' => 'in:User,Administrator,ChuyenVienTTC,DauGiaVien,DonViThuc,ToChucDauGia',
             'address' => 'nullable|string|max:255',
             'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
@@ -44,15 +42,12 @@ class AuthController extends Controller
         $frontPath = $request->hasFile('id_card_front') ? $request->file('id_card_front')->store('idcards', 'public') : null;
         $backPath = $request->hasFile('id_card_back') ? $request->file('id_card_back')->store('idcards', 'public') : null;
 
-        $defaultRole = Role::where('name', 'User')->first();
-        $roleId = $request->role_id ?? ($defaultRole ? $defaultRole->role_id : null);
-
         $user = User::create([
             'full_name' => $request->full_name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role_id' => $roleId,
+            'role' => $request->role ?? 'User',
             'address' => $request->address,
             'id_card_front' => $frontPath,
             'id_card_back' => $backPath,
@@ -62,14 +57,16 @@ class AuthController extends Controller
             'created_at' => now()
         ]);
 
-        // Tạo URL verify email
+        // Tạo URL verify email đúng API route
         $verifyUrl = url('/api/verify-email/' . $verifyToken);
+
+        // Gửi mail ngay (send, không queue)
         Mail::to($user->email)->queue(new VerifyEmailMail($user->full_name, $verifyUrl));
 
         return response()->json([
             'status' => true,
             'message' => 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực.',
-            'user' => $user->load('role') // trả về luôn role
+            'user' => $user
         ], 201);
     }
 
@@ -125,7 +122,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Đăng nhập thành công',
-            'user' => $user->load('role'),
+            'user' => $user,
             'token' => $token
         ]);
     }
@@ -142,7 +139,7 @@ class AuthController extends Controller
     }
 
     // GET /api/user
-    public function user(Request $request)
+   public function user(Request $request)
     {
         $user = $request->user();
 
@@ -150,12 +147,12 @@ class AuthController extends Controller
             'status' => true,
             'user' => [
                 ...$user->toArray(),
-                'role' => $user->role ? $user->role->name : null,
                 'id_card_front_url' => $user->id_card_front ? asset('storage/' . $user->id_card_front) : null,
                 'id_card_back_url' => $user->id_card_back ? asset('storage/' . $user->id_card_back) : null,
             ]
         ]);
     }
+
 
     // PUT /api/user/update
     public function update(Request $request)
@@ -176,11 +173,13 @@ class AuthController extends Controller
         if ($request->hasFile('id_card_front')) {
             $path = $request->file('id_card_front')->store('idcards', 'public');
             $data['id_card_front'] = $path;
+            $data['id_card_front_url'] = asset('storage/' . $path); // Generate full URL
         }
 
         if ($request->hasFile('id_card_back')) {
             $path = $request->file('id_card_back')->store('idcards', 'public');
             $data['id_card_back'] = $path;
+            $data['id_card_back_url'] = asset('storage/' . $path); // Generate full URL
         }
 
         if (isset($data['password'])) {
@@ -189,17 +188,18 @@ class AuthController extends Controller
 
         $user->update($data);
 
+        // Ensure the response includes the updated user data with URLs
         return response()->json([
             'status' => true,
             'message' => 'Cập nhật thông tin thành công',
-            'user' => $user->fresh()->load('role')
+            'user' => $user->fresh(), // Reload the user to get the latest data
         ]);
     }
 
     // GET /api/users (dành cho admin)
     public function index()
     {
-        $users = User::with('role.permissions')->orderByDesc('user_id')->get();
+        $users = User::orderByDesc('user_id')->get();
 
         return response()->json([
             'status' => true,

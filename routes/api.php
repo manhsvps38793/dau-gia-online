@@ -1,6 +1,6 @@
 <?php
-use Illuminate\Support\Facades\Route;
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\{
     AuctionItemController,
     AuthController,
@@ -15,38 +15,18 @@ use App\Http\Controllers\Api\{
     DepositPaymentController,
     EContractsController,
     NewsController,
-    NewsCategoryController
+    NewsCategoryController,
+    RoleController,
+    PermissionController,
+    UserRoleController
 };
+use App\Http\Middleware\CheckPermission;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
-
-// news
-Route::middleware(['auth:sanctum', 'role:Administrator'])->group(function () {
-// 📋 Lấy danh sách tất cả tin tức
-Route::get('/news', [NewsController::class, 'index']);
-// ➕ Thêm tin tức mới
-Route::post('/news', [NewsController::class, 'store']);
-
-// 👀 Xem chi tiết một tin tức theo ID
-Route::get('/news/{id}', [NewsController::class, 'show']);
-
-// ✏️ Cập nhật tin tức
-Route::put('/news/{id}', [NewsController::class, 'update']);
-Route::patch('/news/{id}', [NewsController::class, 'update']);
-
-// 🗑️ Xóa tin tức
-Route::delete('/news/{id}', [NewsController::class, 'destroy']);
-});
-
-Route::get('/news-categories', [NewsCategoryController::class, 'index']);
-Route::post('/news-categories', [NewsCategoryController::class, 'store']);
-Route::get('/news-categories/{id}', [NewsCategoryController::class, 'show']);
-Route::put('/news-categories/{id}', [NewsCategoryController::class, 'update']);
-Route::delete('/news-categories/{id}', [NewsCategoryController::class, 'destroy']);
 
 // =======================
 // 🟢 PUBLIC ROUTES (Ai cũng xem được)
@@ -62,7 +42,8 @@ Route::get('/contracts', [ContractController::class, 'index']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']);
 Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
-Route::apiResource('news', NewsController::class);
+Route::get('/news-categories', [NewsCategoryController::class, 'index']);
+Route::get('/news-categories/{id}', [NewsCategoryController::class, 'show']);
 
 // =======================
 // 🟡 AUTHENTICATION
@@ -75,137 +56,132 @@ Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:
 Route::get('/showuser', [AuthController::class, 'index']);
 
 // =======================
-// 🧩 QUẢN LÝ DANH MỤC (Admin + Đấu giá viên)
+// 📰 QUẢN LÝ TIN TỨC
 // =======================
-Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien'])->group(function () {
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{id}', [CategoryController::class, 'update']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_news'])->group(function () {
+    Route::get('/news', [NewsController::class, 'index']);
+    Route::post('/news', [NewsController::class, 'store']);
+    Route::get('/news/{id}', [NewsController::class, 'show']);
+    Route::put('/news/{id}', [NewsController::class, 'update']);
+    Route::patch('/news/{id}', [NewsController::class, 'update']);
+    Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 });
 
-Route::middleware(['auth:sanctum', 'role:Administrator'])->group(function () {
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_news_categories'])->group(function () {
+    Route::post('/news-categories', [NewsCategoryController::class, 'store']);
+    Route::put('/news-categories/{id}', [NewsCategoryController::class, 'update']);
+    Route::delete('/news-categories/{id}', [NewsCategoryController::class, 'destroy']);
+});
+
+// =======================
+// 🧱 QUẢN LÝ DANH MỤC
+// =======================
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_categories'])->group(function () {
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 });
 
 // =======================
-// 🧱 QUẢN LÝ TÀI SẢN (Admin + Đấu giá viên)
+// 🧱 QUẢN LÝ TÀI SẢN
 // =======================
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_items'])->group(function () {
     Route::post('/auction-items', [AuctionItemController::class, 'store']);
+    Route::put('/auction-items/{id}', [AuctionItemController::class, 'update']);
+    Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy']);
+});
 
-    Route::put('/auction-items/{id}', [AuctionItemController::class, 'update'])
-        ->middleware('role:Administrator,DauGiaVien');
-    Route::delete('/auction-items/{id}', [AuctionItemController::class, 'destroy'])
-        ->middleware('role:Administrator,DauGiaVien');
+// Ảnh phụ sản phẩm
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_items'])->group(function () {
+    Route::get('/auction-items/{itemId}/images', [AuctionItemController::class, 'images']);
+    Route::delete('/auction-items/images/{imageId}', [AuctionItemController::class, 'removeImage']);
+    Route::put('/auction-items/{itemId}/images/{imageId}/primary', [AuctionItemController::class, 'setPrimaryImage']);
 });
 
 // =======================
-// 📑 HỒ SƠ ĐẤU GIÁ (Người dùng, Chuyên viên TTC duyệt)
+// 📑 HỒ SƠ ĐẤU GIÁ
 // =======================
-Route::post('/auction-profiles', [AuctionProfileController::class, 'store'])
-    ->middleware(['auth:sanctum', 'role:User,Administrator']);
-
-Route::get('/auction-profiles', [AuctionProfileController::class, 'index'])
-    ->middleware(['auth:sanctum']);
-
-Route::put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus'])
-    ->middleware(['auth:sanctum', 'role:ChuyenVienTTC,Administrator']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':create_auction_profile'])->post('/auction-profiles', [AuctionProfileController::class, 'store']);
+Route::middleware(['auth:sanctum'])->get('/auction-profiles', [AuctionProfileController::class, 'index']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':approve_auction_profile'])->put('/auction-profiles/{id}/status', [AuctionProfileController::class, 'updateStatus']);
 
 // =======================
-// 💰 TIỀN ĐẶT CỌC (Người dùng nộp, Admin & TTC xử lý)
+// 💰 TIỀN ĐẶT CỌC
 // =======================
-Route::prefix('deposit')->group(function () {
-    Route::post('/pay', [DepositPaymentController::class, 'pay'])
-        ->middleware(['auth:sanctum', 'role:User,Administrator']);
+Route::prefix('deposit')->middleware('auth:sanctum')->group(function () {
+    Route::post('/pay', [DepositPaymentController::class, 'pay'])->middleware(CheckPermission::class.':pay_deposit');
     Route::get('/vnpay-return', [DepositPaymentController::class, 'vnpayReturn'])->name('deposit.vnpay.return');
-    Route::post('/refund', [DepositPaymentController::class, 'refund'])
-        ->middleware(['auth:sanctum', 'role:Administrator,ChuyenVienTTC']);
-    Route::get('/status/{profile_id}', [DepositPaymentController::class, 'status'])
-        ->middleware(['auth:sanctum']);
+    Route::post('/refund', [DepositPaymentController::class, 'refund'])->middleware(CheckPermission::class.':refund_deposit');
+    Route::get('/status/{profile_id}', [DepositPaymentController::class, 'status']);
 });
 
 // =======================
-// 🕓 PHIÊN ĐẤU GIÁ (Đấu giá viên & Tổ chức đấu giá)
+// 🕓 PHIÊN ĐẤU GIÁ
 // =======================
-Route::middleware(['auth:sanctum', 'role:DauGiaVien,ToChucDauGia,Administrator'])->group(function () {
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_sessions'])->group(function () {
     Route::post('/auction-sessions', [AuctionSessionController::class, 'store']);
     Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
     Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destroy']);
-    // // Dừng & tiếp tục phiên đấu giá
     Route::post('/auction-sessions/{id}/pause', [AuctionSessionController::class, 'pause']);
     Route::post('/auction-sessions/{id}/resume', [AuctionSessionController::class, 'resume']);
     Route::post('/auction-sessions/{sessionId}/kick/{userId}', [AuctionSessionController::class, 'kickUser']);
 });
 
-
 // =======================
-// 💸 LƯỢT TRẢ GIÁ (Người dùng tham gia đấu giá)
+// 💸 LƯỢT TRẢ GIÁ
 // =======================
-Route::post('/bids', [BidsController::class, 'placeBid'])
-    ->middleware(['auth:sanctum', 'role:User,Administrator']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':place_bid'])->post('/bids', [BidsController::class, 'placeBid']);
 
 // =======================
 // 📜 HỢP ĐỒNG & THANH TOÁN
 // =======================
-
-// Thanh toán nội bộ
-Route::post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment'])
-    ->middleware(['auth:sanctum', 'role:User,Administrator']);
-
-// Thanh toán online qua VNPAY
-Route::post('/contracts/{contract_id}/pay-online', [PaymentController::class, 'payOnline'])
-    ->middleware(['auth:sanctum', 'role:User,Administrator']);
-
-// Danh sách & chi tiết thanh toán
-Route::get('/payments', [PaymentController::class, 'listPayments'])
-    ->middleware(['auth:sanctum']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':make_payment'])->post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':pay_online'])->post('/contracts/{contract_id}/pay-online', [PaymentController::class, 'payOnline']);
+Route::middleware(['auth:sanctum'])->get('/payments', [PaymentController::class, 'listPayments']);
 
 // =======================
-// 📊 BÁO CÁO (Admin, Chuyên viên TTC)
+// 📊 BÁO CÁO
 // =======================
-Route::middleware(['auth:sanctum', 'role:Administrator'])->group(function () {
-    Route::post('/reports/generate', [ReportController::class, 'generateReport']);
-});
-
-Route::middleware(['auth:sanctum', 'role:Administrator,ChuyenVienTTC'])->group(function () {
-    Route::get('/reports', [ReportController::class, 'listReports']);
-});
+Route::middleware(['auth:sanctum', CheckPermission::class.':generate_reports'])->post('/reports/generate', [ReportController::class, 'generateReport']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':view_reports'])->get('/reports', [ReportController::class, 'listReports']);
 
 // =======================
-// 🔔 THÔNG BÁO (Tất cả user có thể đọc, Admin/DGV tạo)
+// 🔔 THÔNG BÁO
 // =======================
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/notifications/{user_id}', [NotificationController::class, 'getUserNotifications']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::put('/notifications/user/{user_id}/read-all', [NotificationController::class, 'markAllAsRead']);
 });
-
-Route::post('/notifications', [NotificationController::class, 'createNotification'])
-    ->middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC']);
+Route::middleware(['auth:sanctum', CheckPermission::class.':create_notifications'])->post('/notifications', [NotificationController::class, 'createNotification']);
 
 // =======================
 // 📜 HỢP ĐỒNG ĐIỆN TỬ
 // =======================
-Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien,ChuyenVienTTC,User'])->group(function () {
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_econtracts'])->group(function () {
     Route::get('/econtracts', [EContractsController::class, 'index']);
-    Route::get('/econtracts/{id}', [EContractsController::class, 'show']);       // Chi tiết
-    Route::put('/econtracts/{id}', [EContractsController::class, 'update']);     // Cập nhật (ví dụ ký)
-    Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']); // Xóa
+    Route::get('/econtracts/{id}', [EContractsController::class, 'show']);
+    Route::put('/econtracts/{id}', [EContractsController::class, 'update']);
+    Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']);
     Route::post('/econtracts', [EContractsController::class, 'store']);
 });
 
-    Route::get('/econtracts', [EContractsController::class, 'index']);
+Route::middleware(['auth:sanctum','permission:manage_roles'])->group(function () {
+    // Role
+    Route::get('/roles',[RoleController::class,'index']);
+    Route::post('/roles',[RoleController::class,'store']);
+    Route::put('/roles/{id}',[RoleController::class,'update']);
+    Route::delete('/roles/{id}',[RoleController::class,'destroy']);
+    Route::post('/roles/{id}/permissions',[RoleController::class,'assignPermission']);
 
-// =======================
-// 🖼️ ẢNH PHỤ SẢN PHẨM (AuctionItem)
-// =======================
-Route::middleware(['auth:sanctum', 'role:Administrator,DauGiaVien'])->group(function () {
-    // Lấy danh sách ảnh phụ
-    Route::get('/auction-items/{itemId}/images', [AuctionItemController::class, 'images']);
+    // Permission
+    Route::get('/permissions',[PermissionController::class,'index']);
+    Route::post('/permissions',[PermissionController::class,'store']);
+    Route::put('/permissions/{id}',[PermissionController::class,'update']);
+    Route::delete('/permissions/{id}',[PermissionController::class,'destroy']);
 
-    // Xóa ảnh phụ
-    Route::delete('/auction-items/images/{imageId}', [AuctionItemController::class, 'removeImage']);
-
-    // Đặt ảnh phụ là ảnh chính
-    Route::put('/auction-items/{itemId}/images/{imageId}/primary', [AuctionItemController::class, 'setPrimaryImage']);
+    // User role
+    Route::get('/users/{id}/roles',[UserRoleController::class,'index']);
+    Route::post('/users/{id}/roles',[UserRoleController::class,'assignRole']);
+    Route::delete('/users/{id}/roles',[UserRoleController::class,'removeRole']);
 });
-
