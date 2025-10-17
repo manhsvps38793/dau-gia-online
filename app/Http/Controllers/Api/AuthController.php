@@ -137,7 +137,7 @@ class AuthController extends Controller
             'message' => 'Đăng xuất thành công'
         ]);
     }
-    
+
     // GET /api/user
    public function user(Request $request)
     {
@@ -164,28 +164,35 @@ class AuthController extends Controller
             'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
             'password' => 'sometimes|min:6|confirmed',
             'address' => 'sometimes|string|max:255',
-            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'bank_name' => 'sometimes|string|max:255',
             'bank_account' => 'sometimes|string|max:50',
         ]);
 
         if ($request->hasFile('id_card_front')) {
-            $data['id_card_front'] = $request->file('id_card_front')->store('idcards', 'public');
+            $path = $request->file('id_card_front')->store('idcards', 'public');
+            $data['id_card_front'] = $path;
+            $data['id_card_front_url'] = asset('storage/' . $path); // Generate full URL
         }
+
         if ($request->hasFile('id_card_back')) {
-            $data['id_card_back'] = $request->file('id_card_back')->store('idcards', 'public');
+            $path = $request->file('id_card_back')->store('idcards', 'public');
+            $data['id_card_back'] = $path;
+            $data['id_card_back_url'] = asset('storage/' . $path); // Generate full URL
         }
-        if(isset($data['password'])){
+
+        if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
 
         $user->update($data);
 
+        // Ensure the response includes the updated user data with URLs
         return response()->json([
             'status' => true,
             'message' => 'Cập nhật thông tin thành công',
-            'user' => $user
+            'user' => $user->fresh(), // Reload the user to get the latest data
         ]);
     }
 

@@ -53,15 +53,22 @@ class AuctionItemController extends Controller
     }
 
     // 🟡 LIST (Danh sách)
-    public function index()
+    public function index(Request $request)
     {
-        $items = AuctionItem::with('category')
-            ->whereNull('deleted_at')
-            ->orderByDesc('created_at')
-            ->get();
+        $query = AuctionItem::with(['category', 'owner']) // thêm quan hệ owner nếu có
+            ->whereNull('deleted_at');
+
+        // 🔥 Lọc theo owner_id nếu có trong query string
+        if ($request->has('owner_id')) {
+            $query->where('owner_id', $request->owner_id);
+        }
+
+        // Sắp xếp mới nhất
+        $items = $query->orderByDesc('created_at')->get();
 
         return AuctionItemResource::collection($items);
     }
+
 
     // 🟣 SHOW (Chi tiết sản phẩm)
     public function show($id)

@@ -21,6 +21,7 @@ class AuctionItemResource extends JsonResource
                 'name' => $this->owner->full_name,
                 'email' => $this->owner->email,
             ] : null,
+            'created_at' => $this->created_at,
             'sessions' => $this->sessions->map(function ($session) {
                 return [
                     'id' => $session->session_id,   // 👈 sửa lại
