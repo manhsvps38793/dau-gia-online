@@ -8,6 +8,8 @@ class Role extends BaseModel
     protected $table = 'Roles';
     protected $primaryKey = 'role_id';
     public $timestamps = false;
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = ['name', 'description'];
 
@@ -20,5 +22,5 @@ class Role extends BaseModel
     {
         return $this->hasMany(User::class, 'role_id', 'role_id');
     }
-    
+
 }

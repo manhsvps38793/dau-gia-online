@@ -63,7 +63,8 @@ class RoleController extends Controller
         $role = Role::findOrFail($roleId);
         $request->validate([
             'permissions' => 'required|array',
-            'permissions.*' => 'exists:permissions,name'
+            // đã fix 19/10
+            'permissions.*' => 'exists:permissions,permission_id'
         ]);
 
         $role->permissions()->sync($request->permissions);
@@ -71,3 +72,5 @@ class RoleController extends Controller
         return response()->json(['status'=>true,'role'=>$role->load('permissions')]);
     }
 }
+
+// ban đầu  'permissions.*' => 'exists:permissions,name'

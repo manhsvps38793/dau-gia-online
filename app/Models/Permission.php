@@ -10,6 +10,8 @@ class Permission extends BaseModel
     public $timestamps = false;
 
     protected $fillable = ['name', 'description'];
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     public function roles()
     {
