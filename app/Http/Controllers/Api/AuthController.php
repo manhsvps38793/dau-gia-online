@@ -13,6 +13,14 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\VerifyEmailMail;
 
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\UsersExport;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 class AuthController extends Controller
 {
     // POST /api/register
@@ -206,4 +214,26 @@ class AuthController extends Controller
             'users' => $users
         ]);
     }
+
+
+    public function exportUserPDF($id)
+    {
+        $user = User::with('role')->find($id);
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Không tìm thấy người dùng'], 404);
+        }
+
+        $pdf = Pdf::loadView('pdf.user_detail', compact('user'));
+
+        $fileName = 'user_' . $user->user_id . '.pdf';
+        return $pdf->download($fileName);
+    }
+    public function exportUsersExcel(Request $request)
+    {
+        $userIds = $request->input('user_ids'); // Mảng user_id cần export (hoặc null = tất cả)
+        $fileName = 'users_export_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new \App\Exports\UsersExport($userIds), $fileName);
+    }
+
 }

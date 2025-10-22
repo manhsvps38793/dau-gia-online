@@ -186,3 +186,13 @@ Route::delete('/roles/{id}',[RoleController::class,'destroy']);
     Route::delete('/users/{id}/roles',[UserRoleController::class,'removeRole']);
 });
   Route::get('/roles/{id}/permissions', [RoleController::class, 'getPermissions']);
+
+
+// xuất file thông tin cá nhân của admin
+Route::middleware('auth:sanctum', 'permission:manage_users')->group(function () {
+    Route::get('/users/export-pdf/{id}', [AuthController::class, 'exportUserPDF']); // xuất 1 người pdf
+    Route::get('/users/export-excel', [AuthController::class, 'exportUsersExcel']); // xuất nhiều người excel
+});
+
+
+
