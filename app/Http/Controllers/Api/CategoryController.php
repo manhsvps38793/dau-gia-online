@@ -80,8 +80,8 @@ class CategoryController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'        => 'required|string|max:255|unique:categories,name,' . $id,
-            'description' => 'nullable|string'
+           'name' => 'required|string|max:255|unique:categories,name,' . $category->category_id . ',category_id',
+           'description' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -114,6 +114,14 @@ class CategoryController extends Controller
                 'status' => false,
                 'message' => 'Không tìm thấy danh mục'
             ], 404);
+        }
+
+        // Kiểm tra xem danh mục có chứa tài sản (AuctionItem) không
+        if ($category->auctionItems()->count() > 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Không thể xóa danh mục vì danh mục này chứa tài sản'
+            ], 400);
         }
 
         $category->delete();

@@ -25,7 +25,7 @@ class RoleController extends Controller
             'description' => 'nullable|string'
         ]);
 
-        $role = Role::create($request->only('name','description'));
+        $role = Role::create($request->only('name', 'description'));
 
         return response()->json([
             'status' => true,
@@ -39,13 +39,13 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|unique:roles,name,'.$role->id,
+            'name' => 'required|string|unique:roles,name,' . $role->id,
             'description' => 'nullable|string'
         ]);
 
-        $role->update($request->only('name','description'));
+        $role->update($request->only('name', 'description'));
 
-        return response()->json(['status'=>true,'role'=>$role]);
+        return response()->json(['status' => true, 'role' => $role]);
     }
 
     // Xóa role
@@ -54,7 +54,7 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
         $role->delete();
 
-        return response()->json(['status'=>true,'message'=>'Role đã được xóa']);
+        return response()->json(['status' => true, 'message' => 'Role đã được xóa']);
     }
 
     // Gán permission cho role
@@ -63,11 +63,21 @@ class RoleController extends Controller
         $role = Role::findOrFail($roleId);
         $request->validate([
             'permissions' => 'required|array',
-            'permissions.*' => 'exists:permissions,name'
+            'permissions.*' => 'exists:permissions,permission_id'
         ]);
 
         $role->permissions()->sync($request->permissions);
 
-        return response()->json(['status'=>true,'role'=>$role->load('permissions')]);
+        return response()->json(['status' => true, 'role' => $role->load('permissions')]);
+    }
+
+    // Lấy permissions của role
+    public function getPermissions($roleId)
+    {
+        $role = Role::findOrFail($roleId);
+        return response()->json([
+            'status' => true,
+            'permissions' => $role->permissions
+        ]);
     }
 }

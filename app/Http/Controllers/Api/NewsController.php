@@ -23,36 +23,36 @@ class NewsController extends Controller
 
 
 
-   public function store(Request $request)
-    {
-        $data = $request->validate([
-            'category_id' => 'required|exists:news_categories,id',
-            'title' => 'required|string|max:255',
-            'content' => 'required',
-            'author' => 'nullable|string|max:255',
-            'is_published' => 'boolean',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
 
-        if ($request->hasFile('thumbnail')) {
-            $file = $request->file('thumbnail');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('news', $filename, 'public');
+public function store(Request $request)
+{
+    $data = $request->validate([
+        'category_id' => 'required|exists:news_categories,id',
+        'title' => 'required|string|max:255',
+        'content' => 'required',
+        'author' => 'nullable|string|max:255',
+        'is_published' => 'boolean',
+        'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
 
-            // Dùng Storage::url() để tự tạo URL public chính xác
-            $data['thumbnail'] = Storage::url('news/' . $filename);
-        }
+    if ($request->hasFile('thumbnail')) {
+        $file = $request->file('thumbnail');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $file->storeAs('news', $filename, 'public');
 
-
-
-        $news = News::create($data);
-        
-
-        return response()->json([
-            'message' => 'Thêm tin tức thành công!',
-            'data' => $news
-        ], 201);
+        // Tạo URL đầy đủ
+        $data['thumbnail'] = asset('storage/news/' . $filename);
+        // Kết quả: http://localhost:8000/storage/news/xxxx.jpg
     }
+
+    $news = News::create($data);
+
+    return response()->json([
+        'message' => 'Thêm tin tức thành công!',
+        'data' => $news
+    ], 201);
+}
+
 
 
 

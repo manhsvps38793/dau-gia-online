@@ -1,7 +1,6 @@
 @component('mail::message')
 # Xin chào {{ $fullName }}
 
-Cảm ơn bạn đã đăng ký tài khoản.
 Vui lòng nhấn nút bên dưới để xác thực email của bạn.
 
 @component('mail::button', ['url' => $verifyUrl])

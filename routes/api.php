@@ -42,6 +42,8 @@ Route::get('/contracts', [ContractController::class, 'index']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']);
 Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
+Route::get('/news', [NewsController::class, 'index']);
+Route::get('/news/{id}', [NewsController::class, 'show']);
 Route::get('/news-categories', [NewsCategoryController::class, 'index']);
 Route::get('/news-categories/{id}', [NewsCategoryController::class, 'show']);
 
@@ -59,16 +61,14 @@ Route::get('/showuser', [AuthController::class, 'index']);
 // 📰 QUẢN LÝ TIN TỨC
 // =======================
 Route::middleware(['auth:sanctum', CheckPermission::class.':manage_news'])->group(function () {
-    Route::get('/news', [NewsController::class, 'index']);
     Route::post('/news', [NewsController::class, 'store']);
-    Route::get('/news/{id}', [NewsController::class, 'show']);
     Route::put('/news/{id}', [NewsController::class, 'update']);
     Route::patch('/news/{id}', [NewsController::class, 'update']);
     Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 });
 
 Route::middleware(['auth:sanctum', CheckPermission::class.':manage_news_categories'])->group(function () {
-    Route::post('/news-categories', [NewsCategoryController::class, 'store']);
+Route::post('/news-categories', [NewsCategoryController::class, 'store']);
     Route::put('/news-categories/{id}', [NewsCategoryController::class, 'update']);
     Route::delete('/news-categories/{id}', [NewsCategoryController::class, 'destroy']);
 });
@@ -120,7 +120,7 @@ Route::prefix('deposit')->middleware('auth:sanctum')->group(function () {
 // =======================
 Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_sessions'])->group(function () {
     Route::post('/auction-sessions', [AuctionSessionController::class, 'store']);
-    Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
+Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
     Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destroy']);
     Route::post('/auction-sessions/{id}/pause', [AuctionSessionController::class, 'pause']);
     Route::post('/auction-sessions/{id}/resume', [AuctionSessionController::class, 'resume']);
@@ -171,7 +171,7 @@ Route::middleware(['auth:sanctum','permission:manage_roles'])->group(function ()
     Route::get('/roles',[RoleController::class,'index']);
     Route::post('/roles',[RoleController::class,'store']);
     Route::put('/roles/{id}',[RoleController::class,'update']);
-    Route::delete('/roles/{id}',[RoleController::class,'destroy']);
+Route::delete('/roles/{id}',[RoleController::class,'destroy']);
     Route::post('/roles/{id}/permissions',[RoleController::class,'assignPermission']);
 
     // Permission
@@ -185,3 +185,4 @@ Route::middleware(['auth:sanctum','permission:manage_roles'])->group(function ()
     Route::post('/users/{id}/roles',[UserRoleController::class,'assignRole']);
     Route::delete('/users/{id}/roles',[UserRoleController::class,'removeRole']);
 });
+  Route::get('/roles/{id}/permissions', [RoleController::class, 'getPermissions']);
