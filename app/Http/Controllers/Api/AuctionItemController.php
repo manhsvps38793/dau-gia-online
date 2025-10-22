@@ -253,4 +253,41 @@ class AuctionItemController extends Controller
         $images = ItemImage::where('item_id', $itemId)->orderByDesc('is_primary')->get();
         return ItemImageResource::collection($images);
     }
+
+    // 🔍 Tìm kiếm sản phẩm đấu giá
+    public function search(Request $request)
+    {
+        $keyword = $request->input('q'); // q là từ khóa tìm kiếm
+        $status  = $request->input('status'); // lọc theo trạng thái (tùy chọn)
+        $categoryId = $request->input('category_id'); // lọc theo danh mục (tùy chọn)
+
+        $query = AuctionItem::with(['category', 'owner'])
+            ->whereNull('deleted_at');
+
+        if ($keyword) {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                ->orWhere('description', 'like', "%{$keyword}%")
+                ->orWhereHas('category', function ($sub) use ($keyword) {
+                    $sub->where('category_name', 'like', "%{$keyword}%");
+                })
+                ->orWhereHas('owner', function ($sub) use ($keyword) {
+                    $sub->where('username', 'like', "%{$keyword}%");
+                });
+            });
+        }
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        $items = $query->orderByDesc('created_at')->paginate(10);
+
+        return AuctionItemResource::collection($items);
+    }
+
 }
