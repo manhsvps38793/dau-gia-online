@@ -42,11 +42,13 @@ class PaymentController extends Controller
 
             $contract->update(['status'=>'DaThanhToan']);
 
-            Notification::create([
+             $notification =Notification::create([
                 'user_id' => $contract->winner_id,
                 'type'    => 'ThanhToan',
                 'message' => "Thanh toán hợp đồng #{$contract->contract_id} thành công!"
             ]);
+                    event(new \App\Events\NotificationCreated($notification));
+
         });
 
         return response()->json(['status'=>true,'message'=>'Thanh toán thành công']);
@@ -151,11 +153,13 @@ class PaymentController extends Controller
 
             $contract->update(['status'=>'DaThanhToan']);
 
-            Notification::create([
+             $notification =Notification::create([
                 'user_id'=>$contract->winner_id,
                 'type'=>'ThanhToan',
                 'message'=>"Thanh toán VNPAY hợp đồng #{$contract->contract_id} thành công!"
             ]);
+                    event(new \App\Events\NotificationCreated($notification));
+
         });
 
             return redirect('http://localhost:3000');

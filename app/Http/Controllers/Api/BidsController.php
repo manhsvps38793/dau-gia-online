@@ -60,12 +60,12 @@ class BidsController extends Controller
         $session->save();
 
         // Tạo thông báo
-        Notification::create([
+        $notification = Notification::create([
             'user_id' => $user->user_id,
             'message' => "Bạn đã đặt giá {$request->amount} cho phiên #{$session->session_id}",
             'created_at' => now()
         ]);
-
+        event(new \App\Events\NotificationCreated($notification));
         // Broadcast realtime
         broadcast(new BidPlaced($bid))->toOthers();
 

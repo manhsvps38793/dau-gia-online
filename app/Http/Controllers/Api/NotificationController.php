@@ -31,6 +31,9 @@ class NotificationController extends Controller
             'created_at'=> now()
         ]);
 
+         // 🔥 Phát realtime
+         event(new \App\Events\NotificationCreated($notification));
+
         return response()->json([
             'status' => true,
             'message' => 'Thông báo đã được tạo',

@@ -111,19 +111,21 @@ class AuctionSessionController extends Controller
         // 7. Gửi thông báo
 
         if ($ownerId) {
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $ownerId,
                 'message' => 'Bạn có hợp đồng dịch vụ đấu giá mới cần ký: ' . Storage::url($fileName)
             ]);
         }
 
 
-        Notification::create([
+        $notification = Notification::create([
             'user_id' => $session->auction_org_id,
             'message' => 'Có hợp đồng dịch vụ đấu giá mới cần xử lý: ' . Storage::url($fileName)
         ]);
 
         // 8. Trigger event nếu cần realtime
+                event(new \App\Events\NotificationCreated($notification));
+
         event(new AuctionSessionUpdated($session));
 
         return response()->json([

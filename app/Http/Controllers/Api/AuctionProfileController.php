@@ -42,7 +42,7 @@ class AuctionProfileController extends Controller
         ]);
 
         // 4. Tạo thông báo
-        Notification::create([
+         $notification =Notification::create([
             'user_id'    => $request->user()->user_id,
             'type'       => 'HoSo',
             'message'    => "Bạn đã nộp hồ sơ đấu giá cho phiên #{$request->session_id}, chờ duyệt.",
@@ -50,6 +50,8 @@ class AuctionProfileController extends Controller
         ]);
 
         // 5. 🔹 Broadcast realtime
+                event(new \App\Events\NotificationCreated($notification));
+
         event(new AuctionProfileUpdated($profile));
 
         // 6. JSON response
@@ -97,7 +99,7 @@ class AuctionProfileController extends Controller
         $profile->save();
 
         // 🔔 Tạo thông báo
-        Notification::create([
+         $notification =Notification::create([
             'user_id' => $profile->user_id,
             'type' => 'HoSo',
             'message' => "Hồ sơ đấu giá cho phiên #{$profile->session_id} đã được cập nhật trạng thái: {$request->status}.",
@@ -105,6 +107,8 @@ class AuctionProfileController extends Controller
         ]);
 
         // 5. 🔹 Broadcast realtime
+                event(new \App\Events\NotificationCreated($notification));
+
         event(new AuctionProfileUpdated($profile));
 
         return response()->json([
