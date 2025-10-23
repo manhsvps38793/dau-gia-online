@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\VerifyEmailMail;
-
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
@@ -23,61 +22,136 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class AuthController extends Controller
 {
-    // POST /api/register
     public function register(Request $request)
     {
+        // Xác thực dữ liệu đầu vào
         $validator = Validator::make($request->all(), [
+            'account_type' => 'required|in:user,business,auction',
             'full_name' => 'required|string|max:255',
+            'birth_date' => 'required|date',
+            'gender' => 'required|in:male,female,other',
             'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
-            'password' => 'required|min:6|confirmed',
-            'role_id' => 'nullable|exists:Roles,role_id', // cho admin chỉ định role
+            'phone' => 'nullable|string|max:20|regex:/^0[0-9]{9}$/',
             'address' => 'nullable|string|max:255',
-            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'bank_name' => 'nullable|string|max:255',
-            'bank_account' => 'nullable|string|max:50',
+            'password' => 'required|min:6|confirmed',
+            'identity_number' => 'required|string|max:20|unique:users,identity_number',
+            'identity_issue_date' => 'required|date',
+            'identity_issued_by' => 'required|string|max:255',
+            'id_card_front' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'id_card_back' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'bank_name' => 'required|string|max:100',
+            'bank_account' => 'required|string|max:50',
+            'bank_branch' => 'required|string|max:255',
+            // Business-specific fields
+            'position' => 'required_if:account_type,business|string|max:255',
+            'organization_name' => 'required_if:account_type,business|string|max:255',
+            'tax_code' => 'required_if:account_type,business|string|max:20|unique:users,tax_code',
+            'business_license_issue_date' => 'required_if:account_type,business|date',
+            'business_license_issued_by' => 'required_if:account_type,business|string|max:255',
+            'business_license' => 'required_if:account_type,business|file|mimes:pdf,doc,docx|max:5120',
+            // Auctioneer-specific fields
+            'online_contact_method' => 'required_if:account_type,auction|string|max:255',
+            'certificate_number' => 'required_if:account_type,auction|string|max:50|unique:users,certificate_number',
+            'certificate_issue_date' => 'required_if:account_type,auction|date',
+            'certificate_issued_by' => 'required_if:account_type,auction|string|max:255',
+            'auctioneer_card_front' => 'required_if:account_type,auction|image|mimes:jpg,jpeg,png|max:2048',
+            'auctioneer_card_back' => 'required_if:account_type,auction|image|mimes:jpg,jpeg,png|max:2048',
+        ], [
+            'phone.regex' => 'Số điện thoại phải bắt đầu bằng 0 và có đúng 10 chữ số.',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
-                'message' => 'Lỗi dữ liệu',
+                'message' => 'Lỗi dữ liệu đầu vào',
                 'errors' => $validator->errors()
             ], 422);
         }
 
+        // Ánh xạ account_type với role_id
+        $roleName = match ($request->account_type) {
+            'user' => 'User',
+            'business' => 'Bussiness',
+            'auction' => 'Auction',
+            default => null,
+        };
+
+        $role = Role::where('name', $roleName)->first();
+        if (!$role) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Loại tài khoản không hợp lệ'
+            ], 400);
+        }
+
+        // Xử lý file uploads
+        $idCardFrontPath = $request->file('id_card_front')->store('idcards', 'public');
+        $idCardBackPath = $request->file('id_card_back')->store('idcards', 'public');
+        $businessLicensePath = $request->account_type === 'business' && $request->hasFile('business_license')
+            ? $request->file('business_license')->store('business_licenses', 'public')
+            : null;
+        $auctioneerCardFrontPath = $request->account_type === 'auction' && $request->hasFile('auctioneer_card_front')
+            ? $request->file('auctioneer_card_front')->store('auctioneer_cards', 'public')
+            : null;
+        $auctioneerCardBackPath = $request->account_type === 'auction' && $request->hasFile('auctioneer_card_back')
+            ? $request->file('auctioneer_card_back')->store('auctioneer_cards', 'public')
+            : null;
+
+        // Tạo verify token
         $verifyToken = Str::random(64);
 
-        $frontPath = $request->hasFile('id_card_front') ? $request->file('id_card_front')->store('idcards', 'public') : null;
-        $backPath = $request->hasFile('id_card_back') ? $request->file('id_card_back')->store('idcards', 'public') : null;
-
-        $defaultRole = Role::where('name', 'User')->first();
-        $roleId = $request->role_id ?? ($defaultRole ? $defaultRole->role_id : null);
-
+        // Tạo user
         $user = User::create([
             'full_name' => $request->full_name,
+            'birth_date' => $request->birth_date,
+            'gender' => $request->gender,
             'email' => $request->email,
             'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'role_id' => $roleId,
             'address' => $request->address,
-            'id_card_front' => $frontPath,
-            'id_card_back' => $backPath,
+            'identity_number' => $request->identity_number,
+            'identity_issue_date' => $request->identity_issue_date,
+            'identity_issued_by' => $request->identity_issued_by,
+            'id_card_front' => $idCardFrontPath,
+            'id_card_back' => $idCardBackPath,
             'bank_name' => $request->bank_name,
             'bank_account' => $request->bank_account,
+            'bank_branch' => $request->bank_branch,
+            'position' => $request->account_type === 'business' ? $request->position : null,
+            'organization_name' => $request->account_type === 'business' ? $request->organization_name : null,
+            'tax_code' => $request->account_type === 'business' ? $request->tax_code : null,
+            'business_license_issue_date' => $request->account_type === 'business' ? $request->business_license_issue_date : null,
+            'business_license_issued_by' => $request->account_type === 'business' ? $request->business_license_issued_by : null,
+            'business_license' => $businessLicensePath,
+            'online_contact_method' => $request->account_type === 'auction' ? $request->online_contact_method : null,
+            'certificate_number' => $request->account_type === 'auction' ? $request->certificate_number : null,
+            'certificate_issue_date' => $request->account_type === 'auction' ? $request->certificate_issue_date : null,
+            'certificate_issued_by' => $request->account_type === 'auction' ? $request->certificate_issued_by : null,
+            'auctioneer_card_front' => $auctioneerCardFrontPath,
+            'auctioneer_card_back' => $auctioneerCardBackPath,
+            'password' => Hash::make($request->password),
+            'role_id' => $role->role_id,
             'verify_token' => $verifyToken,
-            'created_at' => now()
+            'created_at' => now(),
+            'updated_at' => now()
         ]);
 
-        // Tạo URL verify email
-        $verifyUrl = url('/api/verify-email/' . $verifyToken);
-        Mail::to($user->email)->queue(new VerifyEmailMail($user->full_name, $verifyUrl));
+        // Gửi email xác thực
+        try {
+            $verifyUrl = url('/api/verify-email/' . $verifyToken);
+            Mail::to($user->email)->queue(new VerifyEmailMail($user->full_name, $verifyUrl));
+        } catch (\Exception $e) {
+            // Xóa user nếu gửi email thất bại
+            $user->delete();
+            return response()->json([
+                'status' => false,
+                'message' => 'Không thể gửi email xác thực. Vui lòng thử lại sau.'
+            ], 500);
+        }
 
         return response()->json([
             'status' => true,
             'message' => 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực.',
-            'user' => $user->load('role') // trả về luôn role
+            'user' => $user->load('role')
         ], 201);
     }
 
@@ -161,6 +235,9 @@ class AuthController extends Controller
                 'role' => $user->role ? $user->role->name : null,
                 'id_card_front_url' => $user->id_card_front ? asset('storage/' . $user->id_card_front) : null,
                 'id_card_back_url' => $user->id_card_back ? asset('storage/' . $user->id_card_back) : null,
+                'business_license_url' => $user->business_license ? asset('storage/' . $user->business_license) : null,
+                'auctioneer_card_front_url' => $user->auctioneer_card_front ? asset('storage/' . $user->auctioneer_card_front) : null,
+                'auctioneer_card_back_url' => $user->auctioneer_card_back ? asset('storage/' . $user->auctioneer_card_back) : null,
             ]
         ]);
     }
@@ -172,23 +249,74 @@ class AuthController extends Controller
 
         $data = $request->validate([
             'full_name' => 'sometimes|string|max:255',
+            'birth_date' => 'sometimes|date',
+            'gender' => 'sometimes|in:male,female,other',
             'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
-            'password' => 'sometimes|min:6|confirmed',
+            'phone' => 'sometimes|string|max:20',
             'address' => 'sometimes|string|max:255',
-            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'bank_name' => 'sometimes|string|max:255',
+            'password' => 'sometimes|min:6|confirmed',
+            'identity_number' => 'sometimes|string|max:20|unique:users,identity_number,' . $user->user_id . ',user_id',
+            'identity_issue_date' => 'sometimes|date',
+            'identity_issued_by' => 'sometimes|string|max:255',
+            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'bank_name' => 'sometimes|string|max:100',
             'bank_account' => 'sometimes|string|max:50',
+            'bank_branch' => 'sometimes|string|max:255',
+            // Business-specific (only if user is business)
+            'position' => 'sometimes|string|max:255',
+            'organization_name' => 'sometimes|string|max:255',
+            'tax_code' => 'sometimes|string|max:20|unique:users,tax_code,' . $user->user_id . ',user_id',
+            'business_license_issue_date' => 'sometimes|date',
+            'business_license_issued_by' => 'sometimes|string|max:255',
+            'business_license' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            // Auctioneer-specific (only if user is auctioneer)
+            'online_contact_method' => 'sometimes|string|max:255',
+            'certificate_number' => 'sometimes|string|max:50|unique:users,certificate_number,' . $user->user_id . ',user_id',
+            'certificate_issue_date' => 'sometimes|date',
+            'certificate_issued_by' => 'sometimes|string|max:255',
+            'auctioneer_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'auctioneer_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        // Xử lý xóa file cũ và lưu file mới
         if ($request->hasFile('id_card_front')) {
-            $path = $request->file('id_card_front')->store('idcards', 'public');
-            $data['id_card_front'] = $path;
+            if ($user->id_card_front) {
+                Storage::disk('public')->delete($user->id_card_front);
+            }
+            $data['id_card_front'] = $request->file('id_card_front')->store('idcards', 'public');
         }
 
         if ($request->hasFile('id_card_back')) {
-            $path = $request->file('id_card_back')->store('idcards', 'public');
-            $data['id_card_back'] = $path;
+            if ($user->id_card_back) {
+                Storage::disk('public')->delete($user->id_card_back);
+            }
+            $data['id_card_back'] = $request->file('id_card_back')->store('idcards', 'public');
+        }
+
+        if ($user->role->name === 'Bussiness') {
+            if ($request->hasFile('business_license')) {
+                if ($user->business_license) {
+                    Storage::disk('public')->delete($user->business_license);
+                }
+                $data['business_license'] = $request->file('business_license')->store('business_licenses', 'public');
+            }
+        }
+
+        if ($user->role->name === 'Auction') {
+            if ($request->hasFile('auctioneer_card_front')) {
+                if ($user->auctioneer_card_front) {
+                    Storage::disk('public')->delete($user->auctioneer_card_front);
+                }
+                $data['auctioneer_card_front'] = $request->file('auctioneer_card_front')->store('auctioneer_cards', 'public');
+            }
+
+            if ($request->hasFile('auctioneer_card_back')) {
+                if ($user->auctioneer_card_back) {
+                    Storage::disk('public')->delete($user->auctioneer_card_back);
+                }
+                $data['auctioneer_card_back'] = $request->file('auctioneer_card_back')->store('auctioneer_cards', 'public');
+            }
         }
 
         if (isset($data['password'])) {
@@ -215,7 +343,6 @@ class AuthController extends Controller
         ]);
     }
 
-
     public function exportUserPDF($id)
     {
         $user = User::with('role')->find($id);
@@ -228,12 +355,12 @@ class AuthController extends Controller
         $fileName = 'user_' . $user->user_id . '.pdf';
         return $pdf->download($fileName);
     }
+
     public function exportUsersExcel(Request $request)
     {
         $userIds = $request->input('user_ids'); // Mảng user_id cần export (hoặc null = tất cả)
         $fileName = 'users_export_' . now()->format('Ymd_His') . '.xlsx';
 
-        return Excel::download(new \App\Exports\UsersExport($userIds), $fileName);
+        return Excel::download(new UsersExport($userIds), $fileName);
     }
-
 }
