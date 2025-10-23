@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\VerifyEmailMail;
+use App\Mail\NewUserPendingApprovalMail;
+use App\Mail\UserApprovedMail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
@@ -31,7 +33,7 @@ class AuthController extends Controller
             'birth_date' => 'required|date',
             'gender' => 'required|in:male,female,other',
             'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|string|max:20|regex:/^0[0-9]{9}$/',
+            'phone' => 'nullable|string|max:20|regex:/^(\+?\d{9,15})$/',
             'address' => 'nullable|string|max:255',
             'password' => 'required|min:6|confirmed',
             'identity_number' => 'required|string|max:20|unique:users,identity_number',
@@ -57,7 +59,7 @@ class AuthController extends Controller
             'auctioneer_card_front' => 'required_if:account_type,auction|image|mimes:jpg,jpeg,png|max:2048',
             'auctioneer_card_back' => 'required_if:account_type,auction|image|mimes:jpg,jpeg,png|max:2048',
         ], [
-            'phone.regex' => 'Số điện thoại phải bắt đầu bằng 0 và có đúng 10 chữ số.',
+            'phone.regex' => 'Số điện thoại sai định dạng.',
         ]);
 
         if ($validator->fails()) {
@@ -148,6 +150,19 @@ class AuthController extends Controller
             ], 500);
         }
 
+        // Gửi mail cho admin thông báo có tài khoản mới chờ xét duyệt
+        try {
+            $adminEmail = config('mail.admin_address', 'admin@example.com'); // cấu hình mail admin
+            $adminUrl = url('/admin/users/' . $user->user_id); // link admin xem chi tiết user
+            Mail::to($adminEmail)->queue(new NewUserPendingApprovalMail($user, $adminUrl));
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Đăng ký thành công nhưng không thể gửi thông báo cho admin: ' . $e->getMessage(),
+                'user' => $user->load('role')
+            ], 201);
+        }
+
         return response()->json([
             'status' => true,
             'message' => 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực.',
@@ -199,6 +214,13 @@ class AuthController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Tài khoản chưa xác thực email.'
+            ], 403);
+        }
+
+        if (is_null($user->admin_verified_at)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Vui lòng chờ admin xét duyệt.'
             ], 403);
         }
 
@@ -362,5 +384,45 @@ class AuthController extends Controller
         $fileName = 'users_export_' . now()->format('Ymd_His') . '.xlsx';
 
         return Excel::download(new UsersExport($userIds), $fileName);
+    }
+
+    public function approveUser($id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Không tìm thấy người dùng'], 404);
+        }
+        if ($user->email_verified_at == null) {
+            return response()->json(['status' => false, 'message' => 'Tài khoản chưa được xác minh'], 404);
+        }
+
+        $user->update([
+            'admin_verified_at' => now(),
+            'admin_verify_status' => 'approved'
+        ]);
+
+
+
+        // Gửi mail thông báo user đã được duyệt
+        // try {
+        //     Mail::to($user->email)->queue(new UserApprovedMail($user));
+        // } catch (\Exception $e) {}
+
+        return response()->json(['status' => true, 'message' => 'Tài khoản đã được duyệt thành công.']);
+    }
+
+    public function rejectUser($id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Không tìm thấy người dùng'], 404);
+        }
+
+        $user->update([
+            'admin_verified_at' => null,
+            'admin_verify_status' => 'rejected'
+        ]);
+
+        return response()->json(['status' => true, 'message' => 'Tài khoản đã bị từ chối.']);
     }
 }

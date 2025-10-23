@@ -57,6 +57,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
 Route::put('/user/update', [AuthController::class, 'update'])->middleware('auth:sanctum');
 Route::get('/showuser', [AuthController::class, 'index']);
+Route::put('/user/approve/{id}', [AuthController::class, 'approveUser'])->middleware('auth:sanctum');
+Route::put('/user/reject/{id}', [AuthController::class, 'rejectUser'])->middleware('auth:sanctum');
 
 // =======================
 // 📰 QUẢN LÝ TIN TỨC

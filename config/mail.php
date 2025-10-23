@@ -115,4 +115,16 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Email Address
+    |--------------------------------------------------------------------------
+    |
+    | This option specifies the email address where admin notifications, such as
+    | new user registration alerts, will be sent.
+    |
+    */
+
+    'admin_address' => env('MAIL_ADMIN_ADDRESS', 'nambpps38619@gmail.com'),
+
 ];

@@ -52,12 +52,14 @@ class User extends Authenticatable
         'role_id',
         'verify_token',
         'email_verified_at',
+
+        // 👇 Thêm 2 dòng mới (cột mới thêm trong migration)
+        'admin_verified_at',
+        'admin_verify_status',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
-     *
-     * @var array
      */
     protected $hidden = [
         'password',
@@ -66,8 +68,6 @@ class User extends Authenticatable
 
     /**
      * The attributes that should be cast.
-     *
-     * @var array
      */
     protected $casts = [
         'birth_date' => 'date',
@@ -75,16 +75,14 @@ class User extends Authenticatable
         'business_license_issue_date' => 'date',
         'certificate_issue_date' => 'date',
         'email_verified_at' => 'datetime',
+        'admin_verified_at' => 'datetime', // 👈 thêm dòng này
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
 
     /**
-     * Chuyển múi giờ sang Asia/Ho_Chi_Minh khi serialize
-     *
-     * @param \DateTimeInterface $date
-     * @return string
+     * Định dạng ngày theo múi giờ Việt Nam khi serialize
      */
     public function serializeDate(\DateTimeInterface $date)
     {
@@ -93,7 +91,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the role associated with the user.
+     * Mối quan hệ: user thuộc role nào
      */
     public function role()
     {
@@ -101,7 +99,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the auction profiles associated with the user.
+     * Mối quan hệ: user có nhiều hồ sơ đấu giá
      */
     public function auctionProfiles()
     {
@@ -109,25 +107,44 @@ class User extends Authenticatable
     }
 
     /**
-     * Get all permissions from role and user.
+     * Lấy tất cả quyền (permission) của user
      */
     public function permissions()
     {
         $rolePermissions = $this->role ? $this->role->permissions : collect();
-        $userPermissions = $this->hasMany(UserPermission::class, 'user_id', 'user_id')->with('permission')->get()->pluck('permission');
+        $userPermissions = $this->hasMany(UserPermission::class, 'user_id', 'user_id')
+            ->with('permission')
+            ->get()
+            ->pluck('permission');
+
         return $rolePermissions->merge($userPermissions)->unique('permission_id');
     }
 
     /**
-     * Check if the user has a specific permission.
-     *
-     * @param string $permissionName
-     * @return bool
+     * Kiểm tra quyền cụ thể
      */
     public function hasPermission($permissionName)
     {
         if (!$this->role) return false;
 
         return $this->role->permissions->contains('name', $permissionName);
+    }
+
+    /**
+     * 🔹 Helper: Kiểm tra trạng thái xét duyệt của admin
+     */
+    public function isApprovedByAdmin()
+    {
+        return $this->admin_verify_status === 'approved';
+    }
+
+    public function isPendingApproval()
+    {
+        return $this->admin_verify_status === 'pending';
+    }
+
+    public function isRejectedByAdmin()
+    {
+        return $this->admin_verify_status === 'rejected';
     }
 }
