@@ -268,143 +268,144 @@ class AuthController extends Controller
 
 
     public function update(Request $request, $id)
-    {
-        try {
-            // === 1. TÌM USER - SỬA LỖI TÌM KIẾM ===
-            $user = User::where('user_id', $id)->first();
+{
+    try {
+        // === 1. TÌM USER - SỬA LỖI TÌM KIẾM ===
+        $user = User::where('user_id', $id)->first();
 
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Người dùng không tồn tại'
-                ], 404);
-            }
-
-            // === 2. VALIDATE - SỬA LỖI VALIDATION ===
-            $rules = [
-                'full_name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
-                'phone' => 'sometimes|string|max:20|nullable',
-                'password' => 'sometimes|min:6|confirmed', // SỬA: dùng 'confirmed'
-                'identity_number' => 'sometimes|string|max:20|nullable|unique:users,identity_number,' . $user->user_id . ',user_id',
-                'birth_date' => 'sometimes|date|nullable',
-                'gender' => 'sometimes|string|in:male,female,other|nullable',
-                'address' => 'sometimes|string|max:500|nullable',
-                'identity_issue_date' => 'sometimes|date|nullable',
-                'identity_issued_by' => 'sometimes|string|max:255|nullable',
-                'bank_name' => 'sometimes|string|max:255|nullable',
-                'bank_account' => 'sometimes|string|max:50|nullable',
-                'bank_branch' => 'sometimes|string|max:255|nullable',
-                'position' => 'sometimes|string|max:255|nullable',
-                'organization_name' => 'sometimes|string|max:255|nullable',
-                'tax_code' => 'sometimes|string|max:50|nullable',
-                'business_license_issue_date' => 'sometimes|date|nullable',
-                'business_license_issued_by' => 'sometimes|string|max:255|nullable',
-                'online_contact_method' => 'sometimes|string|max:255|nullable',
-                'certificate_number' => 'sometimes|string|max:50|nullable',
-                'certificate_issue_date' => 'sometimes|date|nullable',
-                'certificate_issued_by' => 'sometimes|string|max:255|nullable',
-                'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'business_license' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
-                'auctioneer_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'auctioneer_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            ];
-
-            $validator = Validator::make($request->all(), $rules);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Dữ liệu không hợp lệ',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // === 3. CHUẨN BỊ DỮ LIỆU - XỬ LÝ NULL ===
-            $data = $request->only([
-                'full_name', 'email', 'phone', 'birth_date', 'gender', 'address',
-                'identity_number', 'identity_issue_date', 'identity_issued_by',
-                'bank_name', 'bank_account', 'bank_branch',
-                'position', 'organization_name', 'tax_code',
-                'business_license_issue_date', 'business_license_issued_by',
-                'online_contact_method', 'certificate_number',
-                'certificate_issue_date', 'certificate_issued_by'
-            ]);
-
-            // XỬ LÝ CÁC TRƯỜNG CÓ THỂ NULL - QUAN TRỌNG
-            $nullableFields = [
-                'phone', 'birth_date', 'gender', 'address', 'identity_number',
-                'identity_issue_date', 'identity_issued_by', 'bank_name',
-                'bank_account', 'bank_branch', 'position', 'organization_name',
-                'tax_code', 'business_license_issue_date', 'business_license_issued_by',
-                'online_contact_method', 'certificate_number', 'certificate_issue_date',
-                'certificate_issued_by'
-            ];
-
-            foreach ($nullableFields as $field) {
-                if ($request->has($field) && empty($request->$field)) {
-                    $data[$field] = null;
-                }
-            }
-
-            // === 4. MẬT KHẨU - CHỈ CẬP NHẬT NẾU CÓ ===
-            if ($request->filled('password')) {
-                $data['password'] = Hash::make($request->password);
-            }
-
-            // === 5. FILE UPLOAD ===
-            $fileFields = [
-                'id_card_front' => 'idcards',
-                'id_card_back' => 'idcards',
-                'business_license' => 'business_licenses',
-                'auctioneer_card_front' => 'auctioneer_cards',
-                'auctioneer_card_back' => 'auctioneer_cards',
-            ];
-
-            foreach ($fileFields as $field => $folder) {
-                if ($request->hasFile($field)) {
-                    // Xóa file cũ
-                    if ($user->$field) {
-                        Storage::disk('public')->delete($user->$field);
-                    }
-                    // Lưu file mới
-                    $data[$field] = $request->file($field)->store($folder, 'public');
-                }
-            }
-
-            // === 6. DEBUG DỮ LIỆU TRƯỚC KHI UPDATE ===
-            // Thêm đoạn này để kiểm tra
-            if (empty($data)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Không có dữ liệu để cập nhật'
-                ], 400);
-            }
-
-            // === 7. CẬP NHẬT ===
-            $updated = $user->update($data);
-
-            if (!$updated) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Không thể cập nhật dữ liệu'
-                ], 500);
-            }
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Cập nhật thành công',
-                'user' => $user->fresh(['role'])
-            ]);
-
-        } catch (\Exception $e) {
+        if (!$user) {
             return response()->json([
                 'status' => false,
-                'message' => 'Lỗi server: ' . $e->getMessage()
+                'message' => 'Người dùng không tồn tại'
+            ], 404);
+        }
+
+        // === 2. VALIDATE - SỬA LỖI VALIDATION ===
+        $rules = [
+            'full_name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
+            'phone' => 'sometimes|string|max:20|nullable',
+            'password' => 'sometimes|min:6|confirmed', // SỬA: dùng 'confirmed'
+            'identity_number' => 'sometimes|string|max:20|nullable|unique:users,identity_number,' . $user->user_id . ',user_id',
+            'birth_date' => 'sometimes|date|nullable',
+            'gender' => 'sometimes|string|in:male,female,other|nullable',
+            'address' => 'sometimes|string|max:500|nullable',
+            'identity_issue_date' => 'sometimes|date|nullable',
+            'identity_issued_by' => 'sometimes|string|max:255|nullable',
+            'bank_name' => 'sometimes|string|max:255|nullable',
+            'bank_account' => 'sometimes|string|max:50|nullable',
+            'bank_branch' => 'sometimes|string|max:255|nullable',
+            'position' => 'sometimes|string|max:255|nullable',
+            'organization_name' => 'sometimes|string|max:255|nullable',
+            'tax_code' => 'sometimes|string|max:50|nullable',
+            'business_license_issue_date' => 'sometimes|date|nullable',
+            'business_license_issued_by' => 'sometimes|string|max:255|nullable',
+            'online_contact_method' => 'sometimes|string|max:255|nullable',
+            'certificate_number' => 'sometimes|string|max:50|nullable',
+            'certificate_issue_date' => 'sometimes|date|nullable',
+            'certificate_issued_by' => 'sometimes|string|max:255|nullable',
+            'role_id' => 'sometimes|exists:roles,role_id', // THÊM VALIDATION CHO ROLE
+            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'business_license' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
+            'auctioneer_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'auctioneer_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Dữ liệu không hợp lệ',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // === 3. CHUẨN BỊ DỮ LIỆU - XỬ LÝ NULL ===
+        $data = $request->only([
+            'full_name', 'email', 'phone', 'birth_date', 'gender', 'address',
+            'identity_number', 'identity_issue_date', 'identity_issued_by',
+            'bank_name', 'bank_account', 'bank_branch',
+            'position', 'organization_name', 'tax_code',
+            'business_license_issue_date', 'business_license_issued_by',
+            'online_contact_method', 'certificate_number',
+            'certificate_issue_date', 'certificate_issued_by', 'role_id' // THÊM ROLE_ID
+        ]);
+
+        // XỬ LÝ CÁC TRƯỜNG CÓ THỂ NULL - QUAN TRỌNG
+        $nullableFields = [
+            'phone', 'birth_date', 'gender', 'address', 'identity_number',
+            'identity_issue_date', 'identity_issued_by', 'bank_name',
+            'bank_account', 'bank_branch', 'position', 'organization_name',
+            'tax_code', 'business_license_issue_date', 'business_license_issued_by',
+            'online_contact_method', 'certificate_number', 'certificate_issue_date',
+            'certificate_issued_by', 'role_id' // THÊM ROLE_ID VÀO NULLABLE FIELDS
+        ];
+
+        foreach ($nullableFields as $field) {
+            if ($request->has($field) && empty($request->$field)) {
+                $data[$field] = null;
+            }
+        }
+
+        // === 4. MẬT KHẨU - CHỈ CẬP NHẬT NẾU CÓ ===
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        // === 5. FILE UPLOAD ===
+        $fileFields = [
+            'id_card_front' => 'idcards',
+            'id_card_back' => 'idcards',
+            'business_license' => 'business_licenses',
+            'auctioneer_card_front' => 'auctioneer_cards',
+            'auctioneer_card_back' => 'auctioneer_cards',
+        ];
+
+        foreach ($fileFields as $field => $folder) {
+            if ($request->hasFile($field)) {
+                // Xóa file cũ
+                if ($user->$field) {
+                    Storage::disk('public')->delete($user->$field);
+                }
+                // Lưu file mới
+                $data[$field] = $request->file($field)->store($folder, 'public');
+            }
+        }
+
+        // === 6. DEBUG DỮ LIỆU TRƯỚC KHI UPDATE ===
+        // Thêm đoạn này để kiểm tra
+        if (empty($data)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Không có dữ liệu để cập nhật'
+            ], 400);
+        }
+
+        // === 7. CẬP NHẬT ===
+        $updated = $user->update($data);
+
+        if (!$updated) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Không thể cập nhật dữ liệu'
             ], 500);
         }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Cập nhật thành công',
+            'user' => $user->fresh(['role'])
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Lỗi server: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     // GET /api/users (dành cho admin)
     public function index()
