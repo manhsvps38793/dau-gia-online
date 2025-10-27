@@ -85,4 +85,15 @@ class BidsController extends Controller
             'bids' => $bids
         ]);
     }
+     // API lấy danh sách bid hiện tại
+    public function index()
+    {
+        $bids = Bid::orderBy('bid_time', 'desc')
+                   ->get();
+
+        return response()->json([
+            'status' => true,
+            'bids' => $bids
+        ]);
+    }
 }

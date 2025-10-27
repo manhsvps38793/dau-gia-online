@@ -38,6 +38,7 @@ Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/auction-sessions', [AuctionSessionController::class, 'index']);
 Route::get('/auction-sessions/{id}', [AuctionSessionController::class, 'show']);
 Route::get('/bids/{sessionId}', [BidsController::class, 'listBids']);
+Route::get('/showbids', [BidsController::class, 'index']);
 Route::get('/contracts', [ContractController::class, 'index']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']);
 Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
