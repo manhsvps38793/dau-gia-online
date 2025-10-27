@@ -96,10 +96,10 @@ Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_items
 
 // Ảnh phụ sản phẩm
 Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_items'])->group(function () {
-    Route::get('/auction-items/{itemId}/images', [AuctionItemController::class, 'images']);
     Route::delete('/auction-items/images/{imageId}', [AuctionItemController::class, 'removeImage']);
     Route::put('/auction-items/{itemId}/images/{imageId}/primary', [AuctionItemController::class, 'setPrimaryImage']);
 });
+    Route::get('/auction-items/{itemId}/images', [AuctionItemController::class, 'images']);
 
 // =======================
 // 📑 HỒ SƠ ĐẤU GIÁ
@@ -152,11 +152,11 @@ Route::middleware(['auth:sanctum', CheckPermission::class.':view_reports'])->get
 // 🔔 THÔNG BÁO
 // =======================
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/notifications/{user_id}', [NotificationController::class, 'getUserNotifications']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::put('/notifications/user/{user_id}/read-all', [NotificationController::class, 'markAllAsRead']);
 });
 Route::middleware(['auth:sanctum', CheckPermission::class.':create_notifications'])->post('/notifications', [NotificationController::class, 'createNotification']);
+    Route::get('/notifications/{user_id}', [NotificationController::class, 'getUserNotifications']);
 
 // =======================
 // 📜 HỢP ĐỒNG ĐIỆN TỬ
