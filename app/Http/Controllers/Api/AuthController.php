@@ -270,7 +270,9 @@ class AuthController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // === 1. TÌM USER - SỬA LỖI TÌM KIẾM ===
+    
+
+            // === 1. TÌM USER ===
             $user = User::where('user_id', $id)->first();
 
             if (!$user) {
@@ -280,12 +282,12 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            // === 2. VALIDATE - SỬA LỖI VALIDATION ===
+            // === 2. VALIDATE ===
             $rules = [
                 'full_name' => 'sometimes|string|max:255',
                 'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
                 'phone' => 'sometimes|string|max:20|nullable',
-                'password' => 'sometimes|min:6|confirmed', // SỬA: dùng 'confirmed'
+                'password' => 'sometimes|min:6|confirmed',
                 'identity_number' => 'sometimes|string|max:20|nullable|unique:users,identity_number,' . $user->user_id . ',user_id',
                 'birth_date' => 'sometimes|date|nullable',
                 'gender' => 'sometimes|string|in:male,female,other|nullable',
@@ -304,6 +306,8 @@ class AuthController extends Controller
                 'certificate_number' => 'sometimes|string|max:50|nullable',
                 'certificate_issue_date' => 'sometimes|date|nullable',
                 'certificate_issued_by' => 'sometimes|string|max:255|nullable',
+
+                // FILES
                 'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
                 'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
                 'business_license' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
@@ -321,7 +325,7 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // === 3. CHUẨN BỊ DỮ LIỆU - XỬ LÝ NULL ===
+            // === 3. LẤY DỮ LIỆU ===
             $data = $request->only([
                 'full_name', 'email', 'phone', 'birth_date', 'gender', 'address',
                 'identity_number', 'identity_issue_date', 'identity_issued_by',
@@ -332,7 +336,7 @@ class AuthController extends Controller
                 'certificate_issue_date', 'certificate_issued_by'
             ]);
 
-            // XỬ LÝ CÁC TRƯỜNG CÓ THỂ NULL - QUAN TRỌNG
+            // === 4. GÁN NULL CHO FIELD RỖNG ===
             $nullableFields = [
                 'phone', 'birth_date', 'gender', 'address', 'identity_number',
                 'identity_issue_date', 'identity_issued_by', 'bank_name',
@@ -343,17 +347,17 @@ class AuthController extends Controller
             ];
 
             foreach ($nullableFields as $field) {
-                if ($request->has($field) && empty($request->$field)) {
+                if ($request->has($field) && ($request->$field === '' || $request->$field === null)) {
                     $data[$field] = null;
                 }
             }
 
-            // === 4. MẬT KHẨU - CHỈ CẬP NHẬT NẾU CÓ ===
+            // === 5. CẬP NHẬT MẬT KHẨU (nếu có) ===
             if ($request->filled('password')) {
                 $data['password'] = Hash::make($request->password);
             }
 
-            // === 5. FILE UPLOAD ===
+            // === 6. FILE UPLOAD ===
             $fileFields = [
                 'id_card_front' => 'idcards',
                 'id_card_back' => 'idcards',
@@ -364,34 +368,36 @@ class AuthController extends Controller
 
             foreach ($fileFields as $field => $folder) {
                 if ($request->hasFile($field)) {
-                    // Xóa file cũ
+                    // Xóa file cũ nếu có
                     if ($user->$field) {
                         Storage::disk('public')->delete($user->$field);
                     }
                     // Lưu file mới
-                    $data[$field] = $request->file($field)->store($folder, 'public');
+                    $path = $request->file($field)->store($folder, 'public');
+                    $data[$field] = $path;
                 }
             }
 
-            // === 6. DEBUG DỮ LIỆU TRƯỚC KHI UPDATE ===
-            // Thêm đoạn này để kiểm tra
-            if (empty($data)) {
+            // === 7. KIỂM TRA CÓ DỮ LIỆU HAY FILE KHÔNG ===
+            $hasFiles = false;
+            foreach ($fileFields as $f => $folder) {
+                if ($request->hasFile($f)) {
+                    $hasFiles = true;
+                    break;
+                }
+            }
+
+            if (empty($data) && !$hasFiles) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Không có dữ liệu để cập nhật'
                 ], 400);
             }
 
-            // === 7. CẬP NHẬT ===
-            $updated = $user->update($data);
+            // === 8. CẬP NHẬT ===
+            $user->update($data);
 
-            if (!$updated) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Không thể cập nhật dữ liệu'
-                ], 500);
-            }
-
+            // === 9. TRẢ KẾT QUẢ ===
             return response()->json([
                 'status' => true,
                 'message' => 'Cập nhật thành công',
@@ -405,6 +411,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
 
     // GET /api/users (dành cho admin)
     public function index()

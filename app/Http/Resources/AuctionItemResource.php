@@ -24,6 +24,9 @@ class AuctionItemResource extends JsonResource
                 'id'    => $this->owner->user_id,
                 'name'  => $this->owner->full_name,
                 'email' => $this->owner->email,
+                'phone' => $this->owner->phone,
+                'address' => $this->owner->address,
+                'phone' => $this->owner->phone,
             ] : null,
             'created_at' => $this->created_at,
 
