@@ -265,93 +265,145 @@ class AuthController extends Controller
     }
 
     // PUT /api/user/update
-    public function update(Request $request)
+
+
+    public function update(Request $request, $id)
     {
-        $user = $request->user();
+        try {
+            // === 1. TÌM USER - SỬA LỖI TÌM KIẾM ===
+            $user = User::where('user_id', $id)->first();
 
-        $data = $request->validate([
-            'full_name' => 'sometimes|string|max:255',
-            'birth_date' => 'sometimes|date',
-            'gender' => 'sometimes|in:male,female,other',
-            'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
-            'phone' => 'sometimes|string|max:20',
-            'address' => 'sometimes|string|max:255',
-            'password' => 'sometimes|min:6|confirmed',
-            'identity_number' => 'sometimes|string|max:20|unique:users,identity_number,' . $user->user_id . ',user_id',
-            'identity_issue_date' => 'sometimes|date',
-            'identity_issued_by' => 'sometimes|string|max:255',
-            'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'bank_name' => 'sometimes|string|max:100',
-            'bank_account' => 'sometimes|string|max:50',
-            'bank_branch' => 'sometimes|string|max:255',
-            // Business-specific (only if user is business)
-            'position' => 'sometimes|string|max:255',
-            'organization_name' => 'sometimes|string|max:255',
-            'tax_code' => 'sometimes|string|max:20|unique:users,tax_code,' . $user->user_id . ',user_id',
-            'business_license_issue_date' => 'sometimes|date',
-            'business_license_issued_by' => 'sometimes|string|max:255',
-            'business_license' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
-            // Auctioneer-specific (only if user is auctioneer)
-            'online_contact_method' => 'sometimes|string|max:255',
-            'certificate_number' => 'sometimes|string|max:50|unique:users,certificate_number,' . $user->user_id . ',user_id',
-            'certificate_issue_date' => 'sometimes|date',
-            'certificate_issued_by' => 'sometimes|string|max:255',
-            'auctioneer_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'auctioneer_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-
-        // Xử lý xóa file cũ và lưu file mới
-        if ($request->hasFile('id_card_front')) {
-            if ($user->id_card_front) {
-                Storage::disk('public')->delete($user->id_card_front);
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Người dùng không tồn tại'
+                ], 404);
             }
-            $data['id_card_front'] = $request->file('id_card_front')->store('idcards', 'public');
-        }
 
-        if ($request->hasFile('id_card_back')) {
-            if ($user->id_card_back) {
-                Storage::disk('public')->delete($user->id_card_back);
+            // === 2. VALIDATE - SỬA LỖI VALIDATION ===
+            $rules = [
+                'full_name' => 'sometimes|string|max:255',
+                'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
+                'phone' => 'sometimes|string|max:20|nullable',
+                'password' => 'sometimes|min:6|confirmed', // SỬA: dùng 'confirmed'
+                'identity_number' => 'sometimes|string|max:20|nullable|unique:users,identity_number,' . $user->user_id . ',user_id',
+                'birth_date' => 'sometimes|date|nullable',
+                'gender' => 'sometimes|string|in:male,female,other|nullable',
+                'address' => 'sometimes|string|max:500|nullable',
+                'identity_issue_date' => 'sometimes|date|nullable',
+                'identity_issued_by' => 'sometimes|string|max:255|nullable',
+                'bank_name' => 'sometimes|string|max:255|nullable',
+                'bank_account' => 'sometimes|string|max:50|nullable',
+                'bank_branch' => 'sometimes|string|max:255|nullable',
+                'position' => 'sometimes|string|max:255|nullable',
+                'organization_name' => 'sometimes|string|max:255|nullable',
+                'tax_code' => 'sometimes|string|max:50|nullable',
+                'business_license_issue_date' => 'sometimes|date|nullable',
+                'business_license_issued_by' => 'sometimes|string|max:255|nullable',
+                'online_contact_method' => 'sometimes|string|max:255|nullable',
+                'certificate_number' => 'sometimes|string|max:50|nullable',
+                'certificate_issue_date' => 'sometimes|date|nullable',
+                'certificate_issued_by' => 'sometimes|string|max:255|nullable',
+                'id_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+                'id_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+                'business_license' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
+                'auctioneer_card_front' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+                'auctioneer_card_back' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            ];
+
+            $validator = Validator::make($request->all(), $rules);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
             }
-            $data['id_card_back'] = $request->file('id_card_back')->store('idcards', 'public');
-        }
 
-        if ($user->role->name === 'Bussiness') {
-            if ($request->hasFile('business_license')) {
-                if ($user->business_license) {
-                    Storage::disk('public')->delete($user->business_license);
+            // === 3. CHUẨN BỊ DỮ LIỆU - XỬ LÝ NULL ===
+            $data = $request->only([
+                'full_name', 'email', 'phone', 'birth_date', 'gender', 'address',
+                'identity_number', 'identity_issue_date', 'identity_issued_by',
+                'bank_name', 'bank_account', 'bank_branch',
+                'position', 'organization_name', 'tax_code',
+                'business_license_issue_date', 'business_license_issued_by',
+                'online_contact_method', 'certificate_number',
+                'certificate_issue_date', 'certificate_issued_by'
+            ]);
+
+            // XỬ LÝ CÁC TRƯỜNG CÓ THỂ NULL - QUAN TRỌNG
+            $nullableFields = [
+                'phone', 'birth_date', 'gender', 'address', 'identity_number',
+                'identity_issue_date', 'identity_issued_by', 'bank_name',
+                'bank_account', 'bank_branch', 'position', 'organization_name',
+                'tax_code', 'business_license_issue_date', 'business_license_issued_by',
+                'online_contact_method', 'certificate_number', 'certificate_issue_date',
+                'certificate_issued_by'
+            ];
+
+            foreach ($nullableFields as $field) {
+                if ($request->has($field) && empty($request->$field)) {
+                    $data[$field] = null;
                 }
-                $data['business_license'] = $request->file('business_license')->store('business_licenses', 'public');
             }
-        }
 
-        if ($user->role->name === 'Auction') {
-            if ($request->hasFile('auctioneer_card_front')) {
-                if ($user->auctioneer_card_front) {
-                    Storage::disk('public')->delete($user->auctioneer_card_front);
+            // === 4. MẬT KHẨU - CHỈ CẬP NHẬT NẾU CÓ ===
+            if ($request->filled('password')) {
+                $data['password'] = Hash::make($request->password);
+            }
+
+            // === 5. FILE UPLOAD ===
+            $fileFields = [
+                'id_card_front' => 'idcards',
+                'id_card_back' => 'idcards',
+                'business_license' => 'business_licenses',
+                'auctioneer_card_front' => 'auctioneer_cards',
+                'auctioneer_card_back' => 'auctioneer_cards',
+            ];
+
+            foreach ($fileFields as $field => $folder) {
+                if ($request->hasFile($field)) {
+                    // Xóa file cũ
+                    if ($user->$field) {
+                        Storage::disk('public')->delete($user->$field);
+                    }
+                    // Lưu file mới
+                    $data[$field] = $request->file($field)->store($folder, 'public');
                 }
-                $data['auctioneer_card_front'] = $request->file('auctioneer_card_front')->store('auctioneer_cards', 'public');
             }
 
-            if ($request->hasFile('auctioneer_card_back')) {
-                if ($user->auctioneer_card_back) {
-                    Storage::disk('public')->delete($user->auctioneer_card_back);
-                }
-                $data['auctioneer_card_back'] = $request->file('auctioneer_card_back')->store('auctioneer_cards', 'public');
+            // === 6. DEBUG DỮ LIỆU TRƯỚC KHI UPDATE ===
+            // Thêm đoạn này để kiểm tra
+            if (empty($data)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Không có dữ liệu để cập nhật'
+                ], 400);
             }
+
+            // === 7. CẬP NHẬT ===
+            $updated = $user->update($data);
+
+            if (!$updated) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Không thể cập nhật dữ liệu'
+                ], 500);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Cập nhật thành công',
+                'user' => $user->fresh(['role'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Lỗi server: ' . $e->getMessage()
+            ], 500);
         }
-
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-
-        $user->update($data);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Cập nhật thông tin thành công',
-            'user' => $user->fresh()->load('role')
-        ]);
     }
 
     // GET /api/users (dành cho admin)

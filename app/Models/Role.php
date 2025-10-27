@@ -1,11 +1,12 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Role extends BaseModel
+class Role extends Model
 {
-    protected $table = 'Roles';
+    protected $table = 'roles';
     protected $primaryKey = 'role_id';
     public $timestamps = false;
     public $incrementing = true;
@@ -15,12 +16,13 @@ class Role extends BaseModel
 
     public function permissions()
     {
-        return $this->belongsToMany(Permission::class, 'RolePermissions', 'role_id', 'permission_id');
+        return $this->belongsToMany(
+            Permission::class,
+            'RolePermissions',
+            'role_id',
+            'permission_id'
+        );
     }
 
-    public function users()
-    {
-        return $this->hasMany(User::class, 'role_id', 'role_id');
-    }
-
+    // Không cần users() nếu không truy ngược
 }

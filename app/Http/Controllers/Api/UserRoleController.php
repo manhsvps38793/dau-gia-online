@@ -5,44 +5,46 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\Role;
 
 class UserRoleController extends Controller
 {
-    // Xem role user
     public function index($userId)
     {
-        $user = User::with('roles.permissions')->findOrFail($userId);
-        return response()->json(['status'=>true,'roles'=>$user->roles]);
+        $user = User::with('role.permissions')->findOrFail($userId);
+        return response()->json([
+            'status' => true,
+            'role' => $user->role
+        ]);
     }
 
-    // Gán role cho user
     public function assignRole(Request $request, $userId)
     {
         $user = User::findOrFail($userId);
+
         $request->validate([
-            'roles' => 'required|array',
-            'roles.*' => 'exists:roles,name'
+            'role_id' => 'required|exists:roles,role_id',
         ]);
 
-        $roles = Role::whereIn('name', $request->roles)->pluck('id')->toArray();
-        $user->roles()->syncWithoutDetaching($roles);
+        $user->role_id = $request->role_id;
+        $user->save();
 
-        return response()->json(['status'=>true,'user'=>$user->load('roles')]);
+        return response()->json([
+            'status' => true,
+            'message' => 'Gán vai trò thành công',
+            'user' => $user->load('role'),
+        ]);
     }
 
-    // Xóa role của user
-    public function removeRole(Request $request, $userId)
+    public function removeRole($userId)
     {
         $user = User::findOrFail($userId);
-        $request->validate([
-            'roles' => 'required|array',
-            'roles.*' => 'exists:roles,name'
+        $user->role_id = null;
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Xóa vai trò thành công',
+            'user' => $user->load('role'),
         ]);
-
-        $roles = Role::whereIn('name', $request->roles)->pluck('id')->toArray();
-        $user->roles()->detach($roles);
-
-        return response()->json(['status'=>true,'user'=>$user->load('roles')]);
     }
 }
