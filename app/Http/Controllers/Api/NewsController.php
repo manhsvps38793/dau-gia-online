@@ -15,9 +15,8 @@ class NewsController extends Controller
     public function index()
     {
         $news = News::with('category')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
+        ->orderBy('created_at', 'desc')
+        ->get();
         return response()->json($news);
     }
 
