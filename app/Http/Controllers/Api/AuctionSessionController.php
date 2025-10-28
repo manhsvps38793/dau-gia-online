@@ -27,6 +27,7 @@ class AuctionSessionController extends Controller
         // 1. Validate dữ liệu
         $validator = Validator::make($request->all(), [
             'item_id'        => 'required|exists:AuctionItems,item_id',
+
             'start_time'     => 'required|date',
             'end_time'       => 'required|date|after:start_time',
             'regulation'     => 'required|string',
@@ -53,6 +54,7 @@ class AuctionSessionController extends Controller
         $session = AuctionSession::create(array_merge($request->all(), [
             'created_by' => $user->user_id
         ]));
+        $session->auctioneer_id = $request->auctioneer_id ?? null;
 
         $now = now();
 
@@ -139,7 +141,7 @@ class AuctionSessionController extends Controller
 
     public function index()
     {
-        $sessions = AuctionSession::with(['item.owner', 'auctionOrg', 'profiles.user'])
+        $sessions = AuctionSession::with(['item.owner','auctioneer', 'auctionOrg', 'profiles.user'])
             ->orderBy('session_id', 'desc')
             ->get();
 
@@ -151,7 +153,7 @@ class AuctionSessionController extends Controller
 
     public function show($id)
     {
-        $session = AuctionSession::with(['item.owner', 'auctionOrg', 'profiles.user'])
+        $session = AuctionSession::with(['item.owner', 'auctioneer', 'auctionOrg', 'profiles.user'])
             ->findOrFail($id);
 
         return response()->json([
@@ -187,6 +189,7 @@ class AuctionSessionController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
+        $session->auctioneer_id = $request->auctioneer_id ?? null;
 
         $session->update($request->all());
 
@@ -330,7 +333,7 @@ class AuctionSessionController extends Controller
             'profile' => $profile->fresh(),
         ]);
     }
- 
+
 
 
 

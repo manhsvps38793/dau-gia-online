@@ -18,7 +18,8 @@ use App\Http\Controllers\Api\{
     NewsCategoryController,
     RoleController,
     PermissionController,
-    UserRoleController
+    UserRoleController,
+    AuctionSessionFavoriteController
 };
 use App\Http\Middleware\CheckPermission;
 
@@ -200,5 +201,9 @@ Route::middleware('auth:sanctum', 'permission:manage_users')->group(function () 
     Route::get('/users/export-excel', [AuthController::class, 'exportUsersExcel']); // xuất nhiều người excel
 });
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/sessions/{id}/favorite', [AuctionSessionFavoriteController::class, 'toggleFavorite']);
+    Route::get('/my-favorites', [AuctionSessionFavoriteController::class, 'myFavorites']);
+});
 
 

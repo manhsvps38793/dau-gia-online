@@ -29,6 +29,7 @@ class AuctionSession extends BaseModel
         'regulation',
         'status',
         'auction_org_id',
+        'auctioneer_id',
         'method',
         'register_start',
         'register_end',
@@ -54,6 +55,10 @@ class AuctionSession extends BaseModel
     public function auctionOrg()
     {
         return $this->belongsTo(User::class, 'auction_org_id', 'user_id');
+    }
+
+    public function auctioneer() {
+        return $this->belongsTo(User::class, 'auctioneer_id', 'user_id');
     }
 
     public function bids()
