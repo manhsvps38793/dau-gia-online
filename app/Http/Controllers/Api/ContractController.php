@@ -36,4 +36,25 @@ class ContractController extends Controller
             'contract' => $contract
         ]);
     }
+    // Xóa hợp đồng theo ID
+    public function destroy($id)
+    {
+        $contract = Contract::find($id);
+
+        if (!$contract) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Hợp đồng không tồn tại'
+            ], 404);
+        }
+
+        // Tiến hành xóa
+        $contract->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Xóa hợp đồng thành công'
+        ]);
+    }
+
 }
