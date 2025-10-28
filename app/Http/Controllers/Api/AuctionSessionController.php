@@ -16,7 +16,8 @@ use App\Events\AuctionSessionUpdated;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\DB;
+use Exception;
 class AuctionSessionController extends Controller
 {
     public function store(Request $request)
@@ -206,10 +207,9 @@ class AuctionSessionController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy($sessionId)
     {
-        $session = AuctionSession::findOrFail($id);
-        $session->delete();
+        $session = AuctionSession::where('session_id', $sessionId)->delete();
 
         return response()->json([
             'status'  => true,
@@ -330,4 +330,11 @@ class AuctionSessionController extends Controller
             'profile' => $profile->fresh(),
         ]);
     }
+ 
+
+
+
+
+
+
 }
