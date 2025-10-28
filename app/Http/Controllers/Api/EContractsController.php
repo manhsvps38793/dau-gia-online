@@ -84,10 +84,9 @@ class EContractsController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy($sessionId)
     {
-        $econtract = EContracts::findOrFail($id);
-        $econtract->delete();
+        $econtract =  EContracts::where('session_id', $sessionId)->delete();
 
         return response()->json([
             'status' => true,

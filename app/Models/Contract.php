@@ -4,7 +4,7 @@ namespace App\Models;
 
 class Contract extends BaseModel
 {
-    protected $table = 'Contracts';
+     protected $table = 'contracts';
     protected $primaryKey = 'contract_id';
 
     protected $fillable = [

@@ -43,6 +43,7 @@ Route::get('/contracts', [ContractController::class, 'index']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']);
 Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']);
+Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destroy']);
 Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
 Route::get('/news', [NewsController::class, 'index']);
@@ -127,7 +128,6 @@ Route::prefix('deposit')->middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_sessions'])->group(function () {
     Route::post('/auction-sessions', [AuctionSessionController::class, 'store']);
 Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
-    Route::delete('/auction-sessions/{id}', [AuctionSessionController::class, 'destroy']);
     Route::post('/auction-sessions/{id}/pause', [AuctionSessionController::class, 'pause']);
     Route::post('/auction-sessions/{id}/resume', [AuctionSessionController::class, 'resume']);
     Route::post('/auction-sessions/{sessionId}/kick/{userId}', [AuctionSessionController::class, 'kickUser']);

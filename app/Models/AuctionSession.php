@@ -5,7 +5,7 @@ namespace App\Models;
 
 class AuctionSession extends BaseModel
 {
-    protected $table = 'AuctionSessions';
+    protected $table = 'auctionsessions';
     protected $primaryKey = 'session_id';
     public $timestamps = false;
 

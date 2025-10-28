@@ -37,9 +37,9 @@ class ContractController extends Controller
         ]);
     }
     // Xóa hợp đồng theo ID
-    public function destroy($id)
+    public function destroy($sessionId)
     {
-        $contract = Contract::find($id);
+        $contract = Contract::where('session_id', $sessionId)->delete();
 
         if (!$contract) {
             return response()->json([
@@ -48,8 +48,6 @@ class ContractController extends Controller
             ], 404);
         }
 
-        // Tiến hành xóa
-        $contract->delete();
 
         return response()->json([
             'status' => true,
