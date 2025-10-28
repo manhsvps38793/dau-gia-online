@@ -19,7 +19,6 @@ class AuctionItemController extends Controller
         // Tạo query cơ bản, kèm category và owner
         $query = AuctionItem::with(['category', 'owner'])
             ->whereNull('deleted_at');
-
         // 🔍 Nếu có truyền owner_id -> lọc theo chủ sở hữu
         if ($request->has('owner_id')) {
             $query->where('owner_id', $request->owner_id);
