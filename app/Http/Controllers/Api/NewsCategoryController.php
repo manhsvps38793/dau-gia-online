@@ -26,6 +26,7 @@ class NewsCategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string', // ✅ thêm validate mô tả
         ]);
 
         $category = NewsCategory::create($validated);
@@ -56,6 +57,7 @@ class NewsCategoryController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string', // ✅ thêm validate mô tả
         ]);
 
         $category->update($validated);
