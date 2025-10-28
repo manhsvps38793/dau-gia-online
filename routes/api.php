@@ -41,6 +41,8 @@ Route::get('/bids/{sessionId}', [BidsController::class, 'listBids']);
 Route::get('/showbids', [BidsController::class, 'index']);
 Route::get('/contracts', [ContractController::class, 'index']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']);
+Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
+Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']);
 Route::get('/payment/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
 Route::get('/news', [NewsController::class, 'index']);
@@ -166,7 +168,6 @@ Route::middleware(['auth:sanctum', CheckPermission::class.':manage_econtracts'])
     Route::get('/econtracts', [EContractsController::class, 'index']);
     Route::get('/econtracts/{id}', [EContractsController::class, 'show']);
     Route::put('/econtracts/{id}', [EContractsController::class, 'update']);
-    Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']);
     Route::post('/econtracts', [EContractsController::class, 'store']);
 });
 
