@@ -41,6 +41,7 @@ Route::get('/auction-sessions/{id}', [AuctionSessionController::class, 'show']);
 Route::get('/bids/{sessionId}', [BidsController::class, 'listBids']);
 Route::get('/showbids', [BidsController::class, 'index']);
 Route::get('/contracts', [ContractController::class, 'index']);
+Route::post('/contracts/{id}', [ContractController::class, 'update']);
 Route::get('/contracts/{id}', [ContractController::class, 'show']);
 Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
 Route::delete('/econtracts/{id}', [EContractsController::class, 'destroy']);

@@ -34,19 +34,20 @@ class RoleController extends Controller
     }
 
     // Cập nhật role
-    public function update(Request $request, $id)
-    {
-        $role = Role::findOrFail($id);
+public function update(Request $request, $id)
+{
+    $role = Role::findOrFail($id);
 
-        $request->validate([
-            'name' => 'required|string|unique:roles,name,' . $role->role_id,
-            'description' => 'nullable|string'
-        ]);
+    $request->validate([
+        'name' => 'required|string|unique:roles,name,' . $role->role_id . ',role_id',
+        'description' => 'nullable|string'
+    ]);
 
-        $role->update($request->only('name', 'description'));
+    $role->update($request->only('name', 'description'));
 
-        return response()->json(['status' => true, 'role' => $role]);
-    }
+    return response()->json(['status' => true, 'role' => $role]);
+}
+
 
     // Xóa role
     public function destroy($id)

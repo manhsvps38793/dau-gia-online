@@ -58,7 +58,6 @@ class PaymentController extends Controller
     public function listPayments(Request $request)
     {
         $payments = Payment::with('contract.session')
-            ->where('sender_id',$request->user()->user_id)
             ->orderBy('payment_id','desc')
             ->get();
         return response()->json($payments);
