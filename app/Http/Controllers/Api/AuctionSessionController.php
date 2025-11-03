@@ -120,7 +120,7 @@ class AuctionSessionController extends Controller
 
         $notification = Notification::create([
             'user_id' => $session->auction_org_id,
-            'message' => 'Có hợp đồng dịch vụ đấu giá mới cần xử lý: ' . Storage::url($fileName)
+            'message' => "{$request->user()->full_name}Có hợp đồng dịch vụ đấu giá mới cần xử lý: " . Storage::url($fileName)
         ]);
 
         // 8. Trigger event nếu cần realtime

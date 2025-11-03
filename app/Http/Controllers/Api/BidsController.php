@@ -62,7 +62,7 @@ class BidsController extends Controller
         // Tạo thông báo
         $notification = Notification::create([
             'user_id' => $user->user_id,
-            'message' => "Bạn đã đặt giá {$request->amount} cho phiên #{$session->session_id}",
+            'message' => "{$request->user()->full_name} đã đặt giá {$request->amount} cho phiên #{$session->session_id}",
             'created_at' => now()
         ]);
         event(new \App\Events\NotificationCreated($notification));

@@ -19,6 +19,16 @@ class NotificationController extends Controller
             'notifications' => $notifications
         ]);
     }
+      public function getUserNotification()
+    {
+        $notifications = Notification::orderBy('created_at', 'desc')
+                                     ->get();
+
+        return response()->json([
+            'status' => true,
+            'notifications' => $notifications
+        ]);
+    }
 
     // Tạo thông báo mới
     public function createNotification(Request $request)

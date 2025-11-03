@@ -45,7 +45,7 @@ class AuctionProfileController extends Controller
          $notification =Notification::create([
             'user_id'    => $request->user()->user_id,
             'type'       => 'HoSo',
-            'message'    => "Bạn đã nộp hồ sơ đấu giá cho phiên #{$request->session_id}, chờ duyệt.",
+            'message'    => "{$request->user()->full_name} đã nộp hồ sơ đấu giá cho phiên #{$request->session_id}, chờ duyệt.",
             'created_at' => now(),
         ]);
 
