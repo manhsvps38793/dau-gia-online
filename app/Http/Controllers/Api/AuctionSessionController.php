@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\AuctionSession;
+use App\Models\AuctionSessionFavorite; // ✅ THÊM
 use App\Models\contract;
 use App\Models\EContracts;
 use App\Models\Notification;
@@ -18,8 +19,11 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Exception;
+
 class AuctionSessionController extends Controller
 {
+    // ========================== CREATE ==========================
+    
     public function store(Request $request)
     {
         $user = $request->user();
@@ -27,7 +31,6 @@ class AuctionSessionController extends Controller
         // 1. Validate dữ liệu
         $validator = Validator::make($request->all(), [
             'item_id'        => 'required|exists:AuctionItems,item_id',
-
             'start_time'     => 'required|date',
             'end_time'       => 'required|date|after:start_time',
             'regulation'     => 'required|string',
@@ -81,10 +84,9 @@ class AuctionSessionController extends Controller
             'contract' => $contract,
             'owner'    => $session->auction_org_id,
             'auction_org' => User::find($session->auction_org_id),
-            'defaultFont' => 'sans-serif', // auto fallback DejaVuSans
+            'defaultFont' => 'sans-serif',
         ];
 
-        // $pdf = PDF::loadView('contracts.dichvu_template', $pdfData);
         $pdf = PDF::loadView('contracts.dichvu_template', $pdfData)
             ->setOptions([
                 'defaultFont' => 'DejaVu Sans',
@@ -92,14 +94,9 @@ class AuctionSessionController extends Controller
                 'isRemoteEnabled' => true,
             ]);
 
-
         // Đặt đường dẫn lưu vào public disk
         $fileName = 'contracts/contract_session_' . $session->session_id . '.pdf';
-
-        // Lưu vào disk 'public'
         Storage::disk('public')->put($fileName, $pdf->output());
-
-        // Tạo URL truy cập file
         $fileUrl = Storage::url($fileName);
 
         // 6. Tạo hợp đồng điện tử
@@ -110,9 +107,10 @@ class AuctionSessionController extends Controller
             'session_id'    => $session->session_id,
             'contract_id'   => $contract->contract_id
         ]);
-        $ownerId = $session->item->user_id ?? null;
-        // 7. Gửi thông báo
 
+        $ownerId = $session->item->user_id ?? null;
+
+        // 7. Gửi thông báo
         if ($ownerId) {
             $notification = Notification::create([
                 'user_id' => $ownerId,
@@ -120,15 +118,13 @@ class AuctionSessionController extends Controller
             ]);
         }
 
-
         $notification = Notification::create([
             'user_id' => $session->auction_org_id,
             'message' => 'Có hợp đồng dịch vụ đấu giá mới cần xử lý: ' . Storage::url($fileName)
         ]);
 
         // 8. Trigger event nếu cần realtime
-                event(new \App\Events\NotificationCreated($notification));
-
+        event(new \App\Events\NotificationCreated($notification));
         event(new AuctionSessionUpdated($session));
 
         return response()->json([
@@ -138,12 +134,20 @@ class AuctionSessionController extends Controller
         ]);
     }
 
+    // ========================== READ ==========================
 
+   // ✅ SỬA METHOD NÀY
     public function index()
     {
-        $sessions = AuctionSession::with(['item.owner','auctioneer', 'auctionOrg', 'profiles.user'])
-            ->orderBy('session_id', 'desc')
-            ->get();
+        $sessions = AuctionSession::with([
+            'item.owner',
+            'auctioneer',
+            'auctionOrg',
+            'profiles.user',
+            'favorites' // ✅ THÊM relation này
+        ])
+        ->orderBy('session_id', 'desc')
+        ->get();
 
         return response()->json([
             'status' => true,
@@ -151,16 +155,25 @@ class AuctionSessionController extends Controller
         ]);
     }
 
+    // ✅ SỬA METHOD NÀY
     public function show($id)
     {
-        $session = AuctionSession::with(['item.owner', 'auctioneer', 'auctionOrg', 'profiles.user'])
-            ->findOrFail($id);
+        $session = AuctionSession::with([
+            'item.owner',
+            'auctioneer',
+            'auctionOrg',
+            'profiles.user',
+            'favorites' // ✅ THÊM
+        ])
+        ->findOrFail($id);
 
         return response()->json([
             'status' => true,
             'session' => $session
         ]);
     }
+
+    // ========================== UPDATE ==========================
 
     public function update(Request $request, $id)
     {
@@ -189,8 +202,8 @@ class AuctionSessionController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        $session->auctioneer_id = $request->auctioneer_id ?? null;
 
+        $session->auctioneer_id = $request->auctioneer_id ?? null;
         $session->update($request->all());
 
         $now = now();
@@ -210,6 +223,8 @@ class AuctionSessionController extends Controller
         ]);
     }
 
+    // ========================== DELETE ==========================
+
     public function destroy($sessionId)
     {
         $session = AuctionSession::where('session_id', $sessionId)->delete();
@@ -220,9 +235,8 @@ class AuctionSessionController extends Controller
         ]);
     }
 
-    /**
-     * Tạm dừng phiên đấu giá
-     */
+    // ========================== PAUSE/RESUME ==========================
+
     public function pause($id)
     {
         $session = AuctionSession::findOrFail($id);
@@ -232,7 +246,7 @@ class AuctionSessionController extends Controller
         }
 
         $now = Carbon::now();
-        $remaining = $now->diffInSeconds($session->bid_end, false); // ✅ đảo lại vị trí
+        $remaining = $now->diffInSeconds($session->bid_end, false);
 
         if ($remaining <= 0) {
             return response()->json(['message' => 'Phiên đã kết thúc'], 400);
@@ -251,11 +265,6 @@ class AuctionSessionController extends Controller
         ]);
     }
 
-
-
-    /**
-     * Tiếp tục phiên đấu giá
-     */
     public function resume($id)
     {
         $session = AuctionSession::findOrFail($id);
@@ -289,9 +298,9 @@ class AuctionSessionController extends Controller
             'new_bid_end' => $newEnd,
         ]);
     }
-    /**
-     * 🧹 Kích người dùng ra khỏi phiên đấu giá
-     */
+
+    // ========================== KICK USER ==========================
+
     public function kickUser(Request $request, $sessionId, $userId)
     {
         $session = AuctionSession::find($sessionId);
@@ -315,7 +324,6 @@ class AuctionSessionController extends Controller
             ], 404);
         }
 
-
         $reason = $request->input('reason', 'Gian lận đấu giá');
         $updated = $profile->update([
             'is_kicked'   => true,
@@ -333,11 +341,4 @@ class AuctionSessionController extends Controller
             'profile' => $profile->fresh(),
         ]);
     }
-
-
-
-
-
-
-
 }

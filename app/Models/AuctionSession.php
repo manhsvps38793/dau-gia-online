@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-
 class AuctionSession extends BaseModel
 {
     protected $table = 'auctionsessions';
@@ -37,11 +36,16 @@ class AuctionSession extends BaseModel
         'bid_start',
         'bid_end',
         'bid_step',
-        'remaining_time', // ✅ thêm
-        'paused',         // ✅ thêm
-        'paused_at',      // ✅ thêm
+        'remaining_time',
+        'paused',
+        'paused_at',
     ];
 
+    // ✅ THÊM: Append is_favorited vào JSON response
+    protected $appends = ['is_favorited'];
+
+    // ========================== RELATIONS ==========================
+    
     public function item()
     {
         return $this->belongsTo(AuctionItem::class, 'item_id');
@@ -57,7 +61,8 @@ class AuctionSession extends BaseModel
         return $this->belongsTo(User::class, 'auction_org_id', 'user_id');
     }
 
-    public function auctioneer() {
+    public function auctioneer() 
+    {
         return $this->belongsTo(User::class, 'auctioneer_id', 'user_id');
     }
 
@@ -70,12 +75,38 @@ class AuctionSession extends BaseModel
     {
         return $this->hasOne(Contract::class, 'session_id');
     }
-public function profiles()
-{
-    return $this->hasMany(AuctionProfile::class, 'session_id', 'session_id');
-}
-public function owner()
-{
-    return $this->belongsTo(User::class, 'owner_id', 'user_id');
-}
+
+    public function profiles()
+    {
+        return $this->hasMany(AuctionProfile::class, 'session_id', 'session_id');
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id', 'user_id');
+    }
+
+    // ✅ THÊM MỚI: Relation với bảng favorites
+    public function favorites()
+    {
+        return $this->hasMany(AuctionSessionFavorite::class, 'session_id', 'session_id');
+    }
+
+    // ========================== ACCESSORS ==========================
+
+    // ✅ THÊM MỚI: Accessor để tính toán is_favorited
+   public function getIsFavoritedAttribute()
+    {
+        // Kiểm tra cả web guard và sanctum guard
+        $user = auth('sanctum')->user() ?? auth()->user();
+        
+        if (!$user) {
+            return false;
+        }
+
+        // Kiểm tra xem user hiện tại đã favorite session này chưa
+        return $this->favorites()
+            ->where('user_id', $user->user_id)
+            ->exists();
+    }
 }
