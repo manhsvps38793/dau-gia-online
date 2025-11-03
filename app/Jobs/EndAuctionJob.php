@@ -118,7 +118,7 @@ public function handle()
                     Notification::create([
                         'user_id' => $highestBid->user_id,
                         'type' => 'ThangDauGia',
-                        'message' => "Chúc mừng! Bạn thắng phiên đấu giá #{$session->session_id} với giá {$highestBid->amount} VND. Hãy ký hợp đồng online: {$fileUrl}",
+                        'message' => "Chúc mừng! thắng phiên đấu giá #{$session->session_id} với giá {$highestBid->amount} VND. Hãy ký hợp đồng online:",
                         'sent_at' => now()
                     ]);
                     \Log::info("EndAuctionJob: Notification sent to user_id={$highestBid->user_id}");
