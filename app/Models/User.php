@@ -26,12 +26,14 @@ class User extends Authenticatable
         'certificate_issue_date', 'certificate_issued_by',
         'auctioneer_card_front', 'auctioneer_card_back', 'password',
         'role_id', 'verify_token', 'email_verified_at',
-        'admin_verified_at', 'admin_verify_status',
+        'admin_verified_at', 'admin_verify_status','is_locked', 'locked_at'
     ];
 
     protected $hidden = ['password', 'verify_token'];
 
     protected $casts = [
+         'is_locked' => 'integer',
+         'locked_at' => 'datetime',
         'birth_date' => 'date',
         'identity_issue_date' => 'date',
         'business_license_issue_date' => 'date',

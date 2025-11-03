@@ -210,6 +210,14 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // Kiểm tra tài khoản bị khóa
+        if ($user->is_locked == 1) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+            ], 403);
+        }
+
         if (is_null($user->email_verified_at)) {
             return response()->json([
                 'status' => false,
@@ -472,4 +480,71 @@ class AuthController extends Controller
         return response()->json(['status' => true, 'message' => 'Tài khoản đã bị từ chối.']);
     }
 
+ // POST /api/user/lock/{id} - Khóa tài khoản
+public function lockUser($id)
+{
+    try {
+        // if (!auth()->user()->hasPermission('lock_users')) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Bạn không có quyền thực hiện hành động này'
+        //     ], 403);
+        // }
+        $user = User::where('user_id', $id)->first(); // Sửa thành where('user_id')
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Không tìm thấy người dùng'
+            ], 404);
+        }
+
+        $user->update([
+            'is_locked' => 1,
+            'locked_at' => now()
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Đã khóa tài khoản thành công'
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Lock user error: ' . $e->getMessage());
+        return response()->json([
+            'status' => false,
+            'message' => 'Lỗi server: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// POST /api/user/unlock/{id} - Mở khóa tài khoản
+public function unlockUser($id)
+{
+    try {
+        $user = User::where('user_id', $id)->first(); // Đã sửa
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Không tìm thấy người dùng'
+            ], 404);
+        }
+
+        $user->update([
+            'is_locked' => 0, // Sửa thành 0 thay vì null
+            'locked_at' => null
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Đã mở khóa tài khoản thành công'
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Unlock user error: ' . $e->getMessage());
+        return response()->json([
+            'status' => false,
+            'message' => 'Lỗi server: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }

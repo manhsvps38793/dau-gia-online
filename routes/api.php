@@ -66,6 +66,7 @@ Route::get('/showuser', [AuthController::class, 'index']);
 Route::put('/user/approve/{id}', [AuthController::class, 'approveUser'])->middleware('auth:sanctum');
 Route::put('/user/reject/{id}', [AuthController::class, 'rejectUser'])->middleware('auth:sanctum');
 
+Route::get('/user/check-lock/{id}', [AuthController::class, 'checkLockStatus'])->middleware('auth:sanctum');
 // =======================
 // 📰 QUẢN LÝ TIN TỨC
 // =======================
@@ -201,6 +202,8 @@ Route::middleware(['auth:sanctum','permission:manage_roles'])->group(function ()
 Route::middleware('auth:sanctum', 'permission:manage_users')->group(function () {
     Route::get('/users/export-pdf/{id}', [AuthController::class, 'exportUserPDF']); // xuất 1 người pdf
     Route::get('/users/export-excel', [AuthController::class, 'exportUsersExcel']); // xuất nhiều người excel
+    Route::post('/user/lock/{id}', [AuthController::class, 'lockUser'])->middleware('auth:sanctum');
+    Route::post('/user/unlock/{id}', [AuthController::class, 'unlockUser'])->middleware('auth:sanctum');
 });
 
 Route::middleware('auth:sanctum')->group(function () {
