@@ -19,24 +19,14 @@ class AuctionSessionFavoriteController extends Controller
             ->first();
 
         if ($favorite) {
-            // ✅ BỎ QUAN TÂM
             $favorite->delete();
-            return response()->json([
-                'status' => true,
-                'is_favorited' => false, // ✅ THÊM TRƯỜNG NÀY
-                'message' => 'Đã bỏ quan tâm phiên đấu giá.'
-            ]);
+            return response()->json(['status' => true, 'message' => 'Đã bỏ quan tâm phiên đấu giá.']);
         } else {
-            // ✅ THÊM QUAN TÂM
             AuctionSessionFavorite::create([
                 'user_id' => $userId,
                 'session_id' => $sessionId
             ]);
-            return response()->json([
-                'status' => true,
-                'is_favorited' => true, // ✅ THÊM TRƯỜNG NÀY
-                'message' => 'Đã thêm vào danh sách quan tâm.'
-            ]);
+            return response()->json(['status' => true, 'message' => 'Đã thêm vào danh sách quan tâm.']);
         }
     }
 
