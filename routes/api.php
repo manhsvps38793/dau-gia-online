@@ -164,7 +164,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum', CheckPermission::class.':create_notifications'])->post('/notifications', [NotificationController::class, 'createNotification']);
     Route::get('/notifications/{user_id}', [NotificationController::class, 'getUserNotifications']);
     Route::get('/notification', [NotificationController::class, 'getUserNotification']);
-
+ Route::get('notification/{id}', [NotificationController::class, 'show']); // xem chi tiết
+    Route::post('notification/', [NotificationController::class, 'store']); // thêm
+    Route::put('notification/{id}', [NotificationController::class, 'update']); // sửa
+    Route::delete('notification/{id}', [NotificationController::class, 'destroy']); // xóa
 // =======================
 // 📜 HỢP ĐỒNG ĐIỆN TỬ
 // =======================
