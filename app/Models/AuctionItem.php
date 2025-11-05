@@ -19,7 +19,8 @@ class AuctionItem extends BaseModel
         'url_file',
         'status',
         'created_at',
-        'deleted_at'
+        'deleted_at',
+        'created_user'
     ];
 
     public function category()
@@ -41,4 +42,11 @@ class AuctionItem extends BaseModel
     {
         return $this->hasMany(ItemImage::class, 'item_id', 'item_id');
     }
+// AuctionItem.php
+public function createdUser()
+{
+    return $this->belongsTo(User::class, 'created_user', 'user_id');
+}
+
+
 }

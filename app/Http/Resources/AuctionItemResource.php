@@ -17,6 +17,15 @@ class AuctionItemResource extends JsonResource
             'url_file'       => $this->url_file,
             'status'         => $this->status,
             'auction_org_id' => $this->auction_org_id, // <-- thêm dòng này
+            'created_user' => $this->when($this->createdUser, function() {
+    return [
+        'id'   => $this->createdUser->user_id,
+        'name' => $this->createdUser->full_name,
+    ];
+}, function() {
+    // fallback nếu chưa load hoặc chỉ có ID
+    return is_int($this->created_user) ? ['id' => $this->created_user, 'name' => null] : null;
+}),// <-- thêm dòng này
 
             'category' => $this->category ? $this->category->name : null,
 
