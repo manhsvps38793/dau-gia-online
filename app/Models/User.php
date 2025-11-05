@@ -26,10 +26,11 @@ class User extends Authenticatable
         'certificate_issue_date', 'certificate_issued_by',
         'auctioneer_card_front', 'auctioneer_card_back', 'password',
         'role_id', 'verify_token', 'email_verified_at',
-        'admin_verified_at', 'admin_verify_status','is_locked', 'locked_at'
+        'admin_verified_at', 'admin_verify_status','is_locked', 'locked_at','reset_token',
+        'reset_token_expires_at',
     ];
 
-    protected $hidden = ['password', 'verify_token'];
+    protected $hidden = ['password', 'verify_token' ,'reset_token'];
 
     protected $casts = [
          'is_locked' => 'integer',
@@ -43,6 +44,7 @@ class User extends Authenticatable
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'reset_token_expires_at' => 'datetime',
     ];
 
     public function serializeDate(\DateTimeInterface $date)

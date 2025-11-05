@@ -67,6 +67,10 @@ Route::put('/user/approve/{id}', [AuthController::class, 'approveUser'])->middle
 Route::put('/user/reject/{id}', [AuthController::class, 'rejectUser'])->middleware('auth:sanctum');
 
 Route::get('/user/check-lock/{id}', [AuthController::class, 'checkLockStatus'])->middleware('auth:sanctum');
+
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::get('/verify-reset/{token}', [AuthController::class, 'verifyResetToken']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 // =======================
 // 📰 QUẢN LÝ TIN TỨC
 // =======================

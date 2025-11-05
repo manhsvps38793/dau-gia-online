@@ -14,12 +14,17 @@ use Illuminate\Support\Facades\Validator;
 use App\Mail\VerifyEmailMail;
 use App\Mail\NewUserPendingApprovalMail;
 use App\Mail\UserApprovedMail;
+use App\Mail\ResetPasswordMail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\UsersExport;
+use Illuminate\Support\Carbon;
+
+
+
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AuthController extends Controller
@@ -171,15 +176,12 @@ class AuthController extends Controller
     }
 
     // GET /api/verify-email/{token}
-    public function verifyEmail($token)
+   public function verifyEmail($token)
     {
         $user = User::where('verify_token', $token)->first();
 
         if (!$user) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Liên kết xác thực không hợp lệ!'
-            ], 400);
+            return redirect()->to(env('FRONTEND_URL') . '/login?message=' . urlencode('Liên kết xác thực không hợp lệ hoặc đã hết hạn.'));
         }
 
         $user->update([
@@ -187,10 +189,7 @@ class AuthController extends Controller
             'verify_token' => null
         ]);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Email đã được xác thực thành công!'
-        ]);
+        return redirect()->to(env('FRONTEND_URL') . '/login?message=' . urlencode('Xác minh thành công, chờ admin xét duyệt tài khoản.'));
     }
 
     // POST /api/login
@@ -481,70 +480,151 @@ class AuthController extends Controller
     }
 
  // POST /api/user/lock/{id} - Khóa tài khoản
-public function lockUser($id)
-{
-    try {
-        // if (!auth()->user()->hasPermission('lock_users')) {
-        //     return response()->json([
-        //         'status' => false,
-        //         'message' => 'Bạn không có quyền thực hiện hành động này'
-        //     ], 403);
-        // }
-        $user = User::where('user_id', $id)->first(); // Sửa thành where('user_id')
-        if (!$user) {
+    public function lockUser($id)
+    {
+        try {
+            // if (!auth()->user()->hasPermission('lock_users')) {
+            //     return response()->json([
+            //         'status' => false,
+            //         'message' => 'Bạn không có quyền thực hiện hành động này'
+            //     ], 403);
+            // }
+            $user = User::where('user_id', $id)->first(); // Sửa thành where('user_id')
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Không tìm thấy người dùng'
+                ], 404);
+            }
+
+            $user->update([
+                'is_locked' => 1,
+                'locked_at' => now()
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Đã khóa tài khoản thành công'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Lock user error: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'Không tìm thấy người dùng'
-            ], 404);
+                'message' => 'Lỗi server: ' . $e->getMessage()
+            ], 500);
         }
-
-        $user->update([
-            'is_locked' => 1,
-            'locked_at' => now()
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Đã khóa tài khoản thành công'
-        ]);
-
-    } catch (\Exception $e) {
-        \Log::error('Lock user error: ' . $e->getMessage());
-        return response()->json([
-            'status' => false,
-            'message' => 'Lỗi server: ' . $e->getMessage()
-        ], 500);
     }
-}
 
 // POST /api/user/unlock/{id} - Mở khóa tài khoản
-public function unlockUser($id)
-{
-    try {
-        $user = User::where('user_id', $id)->first(); // Đã sửa
+    public function unlockUser($id)
+    {
+        try {
+            $user = User::where('user_id', $id)->first(); // Đã sửa
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Không tìm thấy người dùng'
+                ], 404);
+            }
+
+            $user->update([
+                'is_locked' => 0, // Sửa thành 0 thay vì null
+                'locked_at' => null
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Đã mở khóa tài khoản thành công'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Unlock user error: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Lỗi server: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email'
+        ]);
+
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return response()->json(['message' => 'Email không tồn tại trong hệ thống.'], 404);
+            }
+
+            $token = Str::random(60);
+
+            $user->update([
+                'reset_token' => $token,
+                'reset_token_expires_at' => now()->addMinutes(30),
+            ]);
+
+            Mail::to($user->email)->send(new ResetPasswordMail($user->full_name, $token));
+
+            return response()->json([
+                'message' => 'Vui lòng kiểm tra email để xác nhận yêu cầu đổi mật khẩu.'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Forgot password error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Có lỗi xảy ra. Vui lòng thử lại sau.'
+            ], 500);
+        }
+    }
+
+    public function verifyResetToken($token)
+    {
+        $user = User::where('reset_token', $token)
+                    ->where('reset_token_expires_at', '>', Carbon::now())
+                    ->first();
+
         if (!$user) {
             return response()->json([
                 'status' => false,
-                'message' => 'Không tìm thấy người dùng'
-            ], 404);
+                'message' => 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn!'
+            ], 400);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Token hợp lệ! Vui lòng nhập mật khẩu mới.'
+        ]);
+    }
+
+    // ✅ 3. Đổi mật khẩu mới
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'password' => 'required|min:6|confirmed'
+        ]);
+
+        $user = User::where('reset_token', $request->token)->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Token không hợp lệ!'
+            ], 400);
         }
 
         $user->update([
-            'is_locked' => 0, // Sửa thành 0 thay vì null
-            'locked_at' => null
+            'password' => Hash::make($request->password),
+            'reset_token' => null,
+            'reset_token_expires_at' => null
         ]);
 
         return response()->json([
             'status' => true,
-            'message' => 'Đã mở khóa tài khoản thành công'
+            'message' => 'Đổi mật khẩu thành công! Vui lòng đăng nhập lại.'
         ]);
-
-    } catch (\Exception $e) {
-        \Log::error('Unlock user error: ' . $e->getMessage());
-        return response()->json([
-            'status' => false,
-            'message' => 'Lỗi server: ' . $e->getMessage()
-        ], 500);
     }
-}
 }
