@@ -147,6 +147,10 @@ Route::middleware(['auth:sanctum', CheckPermission::class.':place_bid'])->post('
 Route::middleware(['auth:sanctum', CheckPermission::class.':make_payment'])->post('/contracts/{contract_id}/pay', [PaymentController::class, 'makePayment']);
 Route::middleware(['auth:sanctum', CheckPermission::class.':pay_online'])->post('/contracts/{contract_id}/pay-online', [PaymentController::class, 'payOnline']);
 Route::middleware(['auth:sanctum'])->get('/payments', [PaymentController::class, 'listPayments']);
+ Route::get('/payments/{id}', [PaymentController::class, 'show']);
+    Route::put('/payments/{id}', [PaymentController::class, 'update']);
+    Route::delete('/payments/{id}', [PaymentController::class, 'destroy']);
+    Route::post('/payments', [PaymentController::class, 'store']);
 
 // =======================
 // 📊 BÁO CÁO
