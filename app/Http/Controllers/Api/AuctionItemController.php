@@ -121,10 +121,11 @@ class AuctionItemController extends Controller
      public function update(Request $request, $id)
     {
         $item = AuctionItem::findOrFail($id);
-
+        
         if ($item->deleted_at) {
             return response()->json(['status' => false, 'message' => 'Sản phẩm đã bị xóa'], 404);
         }
+
 
         $validated = $request->validate([
             'category_id'    => 'sometimes|exists:Categories,category_id',
@@ -138,6 +139,10 @@ class AuctionItemController extends Controller
             'status'         => ['sometimes', Rule::in(['ChoDuyet','ChoDauGia','DangDauGia','DaBan','Huy'])],
         ]);
 
+        // Sau khi validate xong mới thêm created_user nếu status = ChoDauGia
+        if ($request->status === 'ChoDauGia') {
+            $validated['created_user'] = $request->input('created_user');
+        }
         DB::beginTransaction();
         try {
             // Image chính
@@ -182,7 +187,7 @@ class AuctionItemController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Cập nhật sản phẩm thành công',
-                'item' => new AuctionItemResource($item->load('images','category','owner'))
+                'item' => new AuctionItemResource($item->load('images','category','owner','createdUser'))
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
