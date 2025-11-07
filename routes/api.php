@@ -19,10 +19,9 @@ use App\Http\Controllers\Api\{
     RoleController,
     PermissionController,
     UserRoleController,
-    AuctionSessionFavoriteController
+    AuctionSessionFavoriteController,
 };
 use App\Http\Middleware\CheckPermission;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -53,7 +52,6 @@ Route::get('/news/{id}', [NewsController::class, 'show']);
 Route::get('/news-categories', [NewsCategoryController::class, 'index']);
 Route::get('/news-categories/{id}', [NewsCategoryController::class, 'show']);
 Route::get('/auction-items/search', [AuctionItemController::class, 'search']);
-
 // =======================
 // 🟡 AUTHENTICATION
 // =======================
@@ -221,5 +219,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sessions/{id}/favorite', [AuctionSessionFavoriteController::class, 'toggleFavorite']);
     Route::get('/my-favorites', [AuctionSessionFavoriteController::class, 'myFavorites']);
 });
-
 
