@@ -134,12 +134,14 @@ Route::prefix('deposit')->middleware('auth:sanctum')->group(function () {
 // =======================
 Route::middleware(['auth:sanctum', CheckPermission::class.':manage_auction_sessions'])->group(function () {
     Route::post('/auction-sessions', [AuctionSessionController::class, 'store']);
-Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
+    Route::put('/auction-sessions/{id}', [AuctionSessionController::class, 'update']);
     Route::post('/auction-sessions/{id}/pause', [AuctionSessionController::class, 'pause']);
     Route::post('/auction-sessions/{id}/resume', [AuctionSessionController::class, 'resume']);
     Route::post('/auction-sessions/{sessionId}/kick/{userId}', [AuctionSessionController::class, 'kickUser']);
+    Route::patch('/auction-sessions/{id}/confirm-winner', [AuctionSessionController::class, 'confirmWinner']);
+    // Route::patch('/auction-sessions/{id}/reject-winner', [AuctionSessionController::class, 'rejectWinner']);
 });
-
+Route::patch('/auction-sessions/{id}/reject-winner', [AuctionSessionController::class, 'rejectWinner']);
 // =======================
 // 💸 LƯỢT TRẢ GIÁ
 // =======================

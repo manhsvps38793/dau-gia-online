@@ -18,6 +18,8 @@ class AuctionSession extends BaseModel
         'bid_end'        => 'datetime',
         'paused' => 'boolean',
         'paused_at' => 'datetime',
+        'confirm_winner_at' => 'datetime',
+        'reject_winner_at' => 'datetime'
     ];
 
     protected $fillable = [
@@ -36,16 +38,20 @@ class AuctionSession extends BaseModel
         'bid_start',
         'bid_end',
         'bid_step',
+        'highest_bid',
         'remaining_time',
         'paused',
         'paused_at',
+        'confirm_winner_at',
+        'reject_winner_at',
+        'rejected_reason'
     ];
 
     // ✅ THÊM: Append is_favorited vào JSON response
     protected $appends = ['is_favorited'];
 
     // ========================== RELATIONS ==========================
-    
+
     public function item()
     {
         return $this->belongsTo(AuctionItem::class, 'item_id');
@@ -61,7 +67,7 @@ class AuctionSession extends BaseModel
         return $this->belongsTo(User::class, 'auction_org_id', 'user_id');
     }
 
-    public function auctioneer() 
+    public function auctioneer()
     {
         return $this->belongsTo(User::class, 'auctioneer_id', 'user_id');
     }
@@ -99,7 +105,7 @@ class AuctionSession extends BaseModel
     {
         // Kiểm tra cả web guard và sanctum guard
         $user = auth('sanctum')->user() ?? auth()->user();
-        
+
         if (!$user) {
             return false;
         }
