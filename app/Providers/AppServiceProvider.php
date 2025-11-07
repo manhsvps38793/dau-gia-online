@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Broadcast;
+use App\Broadcasting\SocketIoBroadcaster;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,5 +22,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
+         Broadcast::extend('custom', function ($app, $config) {
+        return new SocketIoBroadcaster($config);
+    });
     }
 }

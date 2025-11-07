@@ -6,9 +6,11 @@ return [
 
     'connections' => [
 
+        // ✅ Kết nối Socket.IO tùy chỉnh
         'socketio' => [
-            'driver' => 'socketio',
-            'url' => env('SOCKETIO_SERVER_URL', 'http://127.0.0.1:6001'),
+            'driver' => 'custom',
+            'via' => App\Broadcasting\SocketIoBroadcaster::class,
+            'server' => env('SOCKETIO_SERVER_URL', 'http://127.0.0.1:6001'),
         ],
 
         'log' => [
