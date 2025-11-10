@@ -5,23 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\NewsCategory;
 use Illuminate\Http\Request;
-use App\Models\ActivityLog;
 
 class NewsCategoryController extends Controller
 {
-
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
     /**
      * Lấy danh sách tất cả danh mục tin tức
      * GET /api/news-categories
@@ -38,14 +24,13 @@ class NewsCategoryController extends Controller
      */
     public function store(Request $request)
     {
-        $userId = $request->user()->user_id ?? null;
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string', // ✅ thêm validate mô tả
         ]);
 
         $category = NewsCategory::create($validated);
-        $this->logActivity($userId, 'create', 'news_category', $category->id, "{$request->user()->full_name}Tạo danh mục tin tức: {$category->name}", 'user_action');
+
         return response()->json([
             'message' => 'Thêm danh mục thành công',
             'data' => $category,
@@ -68,23 +53,15 @@ class NewsCategoryController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $userId = $request->user()->user_id ?? null;
         $category = NewsCategory::findOrFail($id);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string', // ✅ thêm validate mô tả
         ]);
-        $oldData = $category->toArray();
+
         $category->update($validated);
-        $this->logActivity(
-            $userId,
-            'update',
-            'news_category',
-            $id,
-            "{$request->user()->full_name}Cập nhật danh mục tin tức từ " . json_encode($oldData) . " sang " . json_encode($category->toArray()),
-            'user_action'
-        );
+
         return response()->json([
             'message' => 'Cập nhật danh mục thành công',
             'data' => $category,
@@ -97,7 +74,6 @@ class NewsCategoryController extends Controller
      */
     public function destroy($id)
     {
-        
         $category = NewsCategory::findOrFail($id);
         $category->delete();
 

@@ -8,23 +8,9 @@ use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Events\AuctionProfileUpdated;
-use App\Models\ActivityLog;
-use Illuminate\Support\Facades\Auth;
 
 class AuctionProfileController extends Controller
 {
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
     public function store(Request $request)
     {
         // 1. Validate
@@ -54,17 +40,9 @@ class AuctionProfileController extends Controller
             'status'         => 'ChoDuyet',
             'created_at'     => now(),
         ]);
-        // 🔹 Log tạo hồ sơ
-        $this->logActivity(
-            $request->user()->user_id,
-            'create',
-            'auction_profile',
-            $profile->id,
-            "Người dùng tạo hồ sơ đấu giá: session_id={$request->session_id}, deposit_amount={$request->deposit_amount}",
-            'user_action'
-        );
+
         // 4. Tạo thông báo
-        $notification = Notification::create([
+         $notification =Notification::create([
             'user_id'    => $request->user()->user_id,
             'type'       => 'HoSo',
             'message'    => "{$request->user()->full_name} đã nộp hồ sơ đấu giá cho phiên #{$request->session_id}, chờ duyệt.",
@@ -72,7 +50,7 @@ class AuctionProfileController extends Controller
         ]);
 
         // 5. 🔹 Broadcast realtime
-        event(new \App\Events\NotificationCreated($notification));
+                event(new \App\Events\NotificationCreated($notification));
 
         event(new AuctionProfileUpdated($profile));
 
@@ -97,9 +75,10 @@ class AuctionProfileController extends Controller
         return response()->json([
             'status'  => true,
             'message' => 'Danh sách hồ sơ đấu giá',
-            'profiles' => $profiles
+            'profiles'=> $profiles
         ]);
     }
+
 
     public function updateStatus(Request $request, $id)
     {
@@ -110,26 +89,17 @@ class AuctionProfileController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
-                'message' => 'Trạng thái không hợp lệ',
+                'message'=> 'Trạng thái không hợp lệ',
                 'errors' => $validator->errors()
             ], 422);
         }
 
         $profile = AuctionProfile::findOrFail($id);
-        $oldStatus = $profile->status;
         $profile->status = $request->status;
         $profile->save();
-        // 🔹 Log cập nhật trạng thái
-        $this->logActivity(
-            auth::user()->user_id,
-            'update',
-            'auction_profile',
-            $profile->id,
-            "{$request->user()->full_name} Cập nhật trạng thái hồ sơ đấu giá từ '{$oldStatus}' sang '{$request->status}' cho session_id={$profile->session_id}",
-            'admin_action'
-        );
+
         // 🔔 Tạo thông báo
-        $notification = Notification::create([
+         $notification =Notification::create([
             'user_id' => $profile->user_id,
             'type' => 'HoSo',
             'message' => "Hồ sơ đấu giá cho phiên #{$profile->session_id} đã được cập nhật trạng thái: {$request->status}.",
@@ -137,7 +107,7 @@ class AuctionProfileController extends Controller
         ]);
 
         // 5. 🔹 Broadcast realtime
-        event(new \App\Events\NotificationCreated($notification));
+                event(new \App\Events\NotificationCreated($notification));
 
         event(new AuctionProfileUpdated($profile));
 

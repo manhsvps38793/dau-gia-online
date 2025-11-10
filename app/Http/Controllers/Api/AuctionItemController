@@ -11,25 +11,11 @@ use App\Http\Resources\ItemImageResource;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use App\Models\ActivityLog;
 
 class AuctionItemController extends Controller
 {
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
-
     // Danh sách sản phẩm (chưa xóa)
-    public function index(Request $request)
+   public function index(Request $request)
     {
         // Tạo query cơ bản, kèm category và owner
         $query = AuctionItem::with(['category', 'owner'])
@@ -46,7 +32,14 @@ class AuctionItemController extends Controller
         return AuctionItemResource::collection($items);
     }
 
-    public function store(Request $request)
+
+
+
+
+
+
+
+  public function store(Request $request)
     {
         $request->validate([
             'category_id'    => 'required|exists:Categories,category_id',
@@ -58,7 +51,7 @@ class AuctionItemController extends Controller
             'image'          => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
             'url_file'       => 'nullable|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120',
             'extra_images.*' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
-            'status'         => ['nullable', Rule::in(['ChoDuyet', 'ChoDauGia', 'DangDauGia', 'DaBan', 'Huy'])],
+            'status'         => ['nullable', Rule::in(['ChoDuyet','ChoDauGia','DangDauGia','DaBan','Huy'])],
         ]);
 
         DB::beginTransaction();
@@ -103,33 +96,157 @@ class AuctionItemController extends Controller
             }
 
             DB::commit();
-            $userName = $request->user()->full_name ?? 'người dùng';
-            // 🔹 Log activity
-            $this->logActivity(
-                $request->user()->user_id,
-                'create',
-                'auction_item',
-                $item->item_id,
-                "{$userName}với id={$request->user()->user_id} tạo sản phẩm đấu giá: item_id={$item->item_id}, name={$item->name}",
-                'user_action'
-            );
 
             broadcast(new \App\Events\ItemCreated($item))->toOthers();
 
             return response()->json([
                 'status' => true,
                 'message' => 'Tạo sản phẩm thành công',
-                'item' => new AuctionItemResource($item->load('images', 'category', 'owner'))
+                'item' => new AuctionItemResource($item->load('images','category','owner'))
             ], 201);
+
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['status' => false, 'message' => 'Lỗi khi tạo sản phẩm', 'error' => $e->getMessage()], 500);
         }
     }
-   
+
+
+    // Tạo mới
+// public function store(Request $request)
+// {
+//     // dd($request->allFiles());
+//     $request->validate([
+//         'category_id'    => 'required|exists:Categories,category_id',
+//         'owner_id'       => 'required|exists:Users,user_id',
+//         'auction_org_id' => 'nullable|integer',
+//         'name'           => 'required|string|max:255',
+//         'description'    => 'nullable|string',
+//         'starting_price' => 'required|numeric|min:1',
+//         'image'          => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+//         'url_file'       => 'nullable|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120',
+//         'extra_images.*' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+//         'status'         => ['nullable', Rule::in(['ChoDuyet','ChoDauGia','DangDauGia','DaBan','Huy'])],
+//     ]);
+
+//     DB::beginTransaction();
+//     try {
+//         /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+//         $disk = Storage::disk('s3'); // S3 disk
+
+//         \Log::info('Store AuctionItem - Start');
+
+//         // Ảnh chính
+//         $imageUrl = null;
+//         if ($request->hasFile('image') && $request->file('image')->isValid()) {
+//             $file = $request->file('image');
+//             \Log::info('Image received: ' . $file->getClientOriginalName());
+//             $path = $file->store('auction_images', 's3');
+//             \Log::info('Image stored at: ' . $path);
+//             if ($path) {
+//                 $imageUrl = $disk->url($path);
+//                 \Log::info('Image URL: ' . $imageUrl);
+//             }
+//         } else {
+//             \Log::info('No image uploaded or file invalid.');
+//         }
+
+//         // File tài liệu
+//         $fileUrl = null;
+//         if ($request->hasFile('url_file') && $request->file('url_file')->isValid()) {
+//             $file = $request->file('url_file');
+//             \Log::info('Document received: ' . $file->getClientOriginalName());
+//             $path = $file->store('auction_files', 's3');
+//             \Log::info('Document stored at: ' . $path);
+//             if ($path) {
+//                 $fileUrl = $disk->url($path);
+//                 \Log::info('Document URL: ' . $fileUrl);
+//             }
+//         } else {
+//             \Log::info('No document uploaded or file invalid.');
+//         }
+
+//         // Tạo AuctionItem
+//         $item = AuctionItem::create([
+//             'category_id'    => $request->category_id,
+//             'owner_id'       => $request->owner_id,
+//             'auction_org_id' => $request->auction_org_id,
+//             'name'           => $request->name,
+//             'description'    => $request->description,
+//             'starting_price' => $request->starting_price,
+//             'image_url'      => $imageUrl,
+//             'url_file'       => $fileUrl,
+//             'status'         => $request->status ?? 'ChoDuyet',
+//         ]);
+//         \Log::info('AuctionItem created: ID ' . $item->item_id);
+
+//         // Ảnh phụ
+//         if ($request->hasFile('extra_images')) {
+//             foreach ($request->file('extra_images') as $file) {
+//                 if ($file->isValid()) {
+//                     \Log::info('Extra image received: ' . $file->getClientOriginalName());
+//                     $p = $file->store('auction_images', 's3');
+//                     \Log::info('Extra image stored at: ' . $p);
+//                     if ($p) {
+//                         $extraImage = ItemImage::create([
+//                             'item_id' => $item->item_id,
+//                             'image_url' => $disk->url($p),
+//                             'is_primary' => false,
+//                         ]);
+//                         \Log::info('Extra image saved to DB: ID ' . $extraImage->id);
+//                     }
+//                 } else {
+//                     \Log::warning('Extra image invalid: ' . $file->getClientOriginalName());
+//                 }
+//             }
+//         } else {
+//             \Log::info('No extra images uploaded.');
+//         }
+
+//         DB::commit();
+//         \Log::info('Store AuctionItem - Success');
+
+//         // Broadcast event
+//         broadcast(new \App\Events\ItemCreated($item))->toOthers();
+
+//         return response()->json([
+//             'status' => true,
+//             'message' => 'Tạo sản phẩm thành công',
+//             'item' => new AuctionItemResource($item->load('images','category','owner'))
+//         ], 201);
+
+//     } catch (\Throwable $e) {
+//         DB::rollBack();
+//         \Log::error('Store AuctionItem - Error: ' . $e->getMessage());
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Lỗi khi tạo sản phẩm',
+//             'error' => $e->getMessage()
+//         ], 500);
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     public function show($id)
     {
-        $item = AuctionItem::with(['category', 'owner', 'sessions.auctionOrg', 'sessions.bids.user', 'sessions.contract', 'images'])
+        $item = AuctionItem::with(['category','owner','sessions.auctionOrg','sessions.bids.user','sessions.contract','images'])
             ->findOrFail($id);
 
         if ($item->deleted_at) {
@@ -140,10 +257,10 @@ class AuctionItemController extends Controller
     }
 
     // Cập nhật
-    public function update(Request $request, $id)
+     public function update(Request $request, $id)
     {
         $item = AuctionItem::findOrFail($id);
-
+        
         if ($item->deleted_at) {
             return response()->json(['status' => false, 'message' => 'Sản phẩm đã bị xóa'], 404);
         }
@@ -158,7 +275,7 @@ class AuctionItemController extends Controller
             'image'          => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
             'url_file'       => 'nullable|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120',
             'extra_images.*' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
-            'status'         => ['sometimes', Rule::in(['ChoDuyet', 'ChoDauGia', 'DangDauGia', 'DaBan', 'Huy'])],
+            'status'         => ['sometimes', Rule::in(['ChoDuyet','ChoDauGia','DangDauGia','DaBan','Huy'])],
         ]);
 
         // Sau khi validate xong mới thêm created_user nếu status = ChoDauGia
@@ -203,23 +320,13 @@ class AuctionItemController extends Controller
             }
 
             DB::commit();
-           
-            // 🔹 Log activity
-            $this->logActivity(
-                $request->user()->user_id,
-                'update',
-                'auction_item',
-                $item->item_id,
-                "{$request->user()->full_name} cập nhật sản phẩm đấu giá: item_id={$item->item_id}, name={$item->name}",
-                'user_action'
-            );
 
             broadcast(new \App\Events\ItemUpdated($item))->toOthers();
 
             return response()->json([
                 'status' => true,
                 'message' => 'Cập nhật sản phẩm thành công',
-                'item' => new AuctionItemResource($item->load('images', 'category', 'owner', 'createdUser'))
+                'item' => new AuctionItemResource($item->load('images','category','owner','createdUser'))
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -241,15 +348,7 @@ class AuctionItemController extends Controller
         $item->deleted_at = now();
         $item->status = 'Huy';
         $item->save();
-        // 🔹 Log activity
-            $this->logActivity(
-                $request->user()->user_id,
-                'delete',
-                'auction_item',
-                $item->item_id,
-                "{$request->user()->full_name} xóa sản phẩm đấu giá: item_id={$item->item_id}, name={$item->name}",
-                'user_action'
-            );
+
         return response()->json(['status' => true, 'message' => 'Xóa sản phẩm thành công']);
     }
 
@@ -311,13 +410,13 @@ class AuctionItemController extends Controller
         if ($keyword) {
             $query->where(function ($q) use ($keyword) {
                 $q->where('name', 'like', "%{$keyword}%")
-                    ->orWhere('description', 'like', "%{$keyword}%")
-                    ->orWhereHas('category', function ($sub) use ($keyword) {
-                        $sub->where('category_name', 'like', "%{$keyword}%");
-                    })
-                    ->orWhereHas('owner', function ($sub) use ($keyword) {
-                        $sub->where('username', 'like', "%{$keyword}%");
-                    });
+                ->orWhere('description', 'like', "%{$keyword}%")
+                ->orWhereHas('category', function ($sub) use ($keyword) {
+                    $sub->where('category_name', 'like', "%{$keyword}%");
+                })
+                ->orWhereHas('owner', function ($sub) use ($keyword) {
+                    $sub->where('username', 'like', "%{$keyword}%");
+                });
             });
         }
 
@@ -333,4 +432,5 @@ class AuctionItemController extends Controller
 
         return AuctionItemResource::collection($items);
     }
+
 }

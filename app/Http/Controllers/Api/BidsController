@@ -8,22 +8,9 @@ use App\Models\Bid;
 use App\Models\AuctionSession;
 use App\Models\Notification;
 use App\Events\BidPlaced;
-use App\Models\ActivityLog;
 
 class BidsController extends Controller
 {
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
     public function placeBid(Request $request)
     {
         $request->validate([
@@ -35,7 +22,7 @@ class BidsController extends Controller
         $session = AuctionSession::with('item')->find($request->session_id);
 
         if (!$session || $session->status !== 'DangDienRa') {
-            return response()->json(['status' => false, 'message' => 'Phiên đấu giá chưa mở hoặc đã kết thúc'], 400);
+            return response()->json(['status'=>false,'message'=>'Phiên đấu giá chưa mở hoặc đã kết thúc'],400);
         }
 
         // Kiểm tra user đã được duyệt hồ sơ
@@ -45,18 +32,18 @@ class BidsController extends Controller
             ->first();
 
         if (!$profile) {
-            return response()->json(['status' => false, 'message' => 'Bạn chưa được duyệt tham gia phiên đấu giá này'], 403);
+            return response()->json(['status'=>false,'message'=>'Bạn chưa được duyệt tham gia phiên đấu giá này'],403);
         }
 
         // Lấy giá cao nhất hiện tại
         $highestBid = Bid::where('session_id', $session->session_id)
-            ->orderBy('amount', 'desc')
-            ->first();
+                         ->orderBy('amount','desc')
+                         ->first();
 
         $minBid = $highestBid ? $highestBid->amount + 1 : $session->item->starting_price;
 
         if ($request->amount < $minBid) {
-            return response()->json(['status' => false, 'message' => "Giá đặt phải >= {$minBid}"], 400);
+            return response()->json(['status'=>false,'message'=>"Giá đặt phải >= {$minBid}"],400);
         }
 
         // Tạo bid mới
@@ -66,15 +53,7 @@ class BidsController extends Controller
             'amount' => $request->amount,
             'bid_time' => now()
         ]);
-        // 🔹 Log hoạt động
-        $this->logActivity(
-            $user->user_id,
-            'create',
-            'bid',
-            $bid->id,
-            "{$request->user()->full_name}Đặt giá {$bid->amount} cho phiên đấu giá session_id={$session->session_id}",
-            'user_action'
-        );
+
         // Cập nhật phiên đấu giá: giá cao nhất và người dẫn đầu
         $session->highest_bid = $bid->amount;           // cần thêm cột highest_bid trong DB nếu chưa có
         $session->current_winner_id = $user->user_id;  // cần thêm cột current_winner_id
@@ -90,26 +69,27 @@ class BidsController extends Controller
         // Broadcast realtime
         broadcast(new BidPlaced($bid))->toOthers();
 
-        return response()->json(['status' => true, 'message' => 'Đặt giá thành công', 'bid' => $bid]);
+        return response()->json(['status'=>true,'message'=>'Đặt giá thành công','bid'=>$bid]);
     }
+
     // API lấy danh sách bid hiện tại
     public function listBids($sessionId)
     {
         $bids = Bid::where('session_id', $sessionId)
-            ->with('user') // Thêm relation user
-            ->orderBy('bid_time', 'desc')
-            ->get();
+                   ->with('user') // Thêm relation user
+                   ->orderBy('bid_time', 'desc')
+                   ->get();
 
         return response()->json([
             'status' => true,
             'bids' => $bids
         ]);
     }
-    // API lấy danh sách bid hiện tại
+     // API lấy danh sách bid hiện tại
     public function index()
     {
         $bids = Bid::orderBy('bid_time', 'desc')
-            ->get();
+                   ->get();
 
         return response()->json([
             'status' => true,

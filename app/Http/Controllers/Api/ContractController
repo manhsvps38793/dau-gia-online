@@ -6,22 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use App\Models\ActivityLog;
 
 class ContractController extends Controller
 {
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
     public function index(Request $request)
     {
         $user = $request->user();
@@ -73,6 +60,8 @@ class ContractController extends Controller
             'contract' => $contract
         ]);
     }
+
+
     // Xóa hợp đồng theo ID
     public function destroy($sessionId)
     {
@@ -91,14 +80,17 @@ class ContractController extends Controller
             'message' => 'Xóa hợp đồng thành công'
         ]);
     }
+
+
+
+
     public function update(Request $request, $id)
     {
         $contract = Contract::find($id);
-        $user = $request->user();
         if (!$contract) return response()->json(['status' => false, 'message' => 'Không tồn tại'], 404);
 
         // Log để debug
-        $oldData = $contract->toArray();
+
         $contract->winner_id = $request->input('winner_id', $contract->winner_id);
         $contract->final_price = $request->input('final_price', $contract->final_price);
         $contract->signed_date = $request->input('signed_date', $contract->signed_date);
@@ -110,15 +102,7 @@ class ContractController extends Controller
         }
 
         $contract->save();
-        // 🔹 Log hoạt động
-        $this->logActivity(
-            $user->user_id,
-            'update',
-            'contract',
-            $contract->contract_id,
-            "{$request->user()->full_name} Cập nhật hợp đồng từ " . json_encode($oldData) . " sang " . json_encode($contract->toArray()),
-            'user_action'
-        );
+
         return response()->json([
             'status' => true,
             'message' => 'Cập nhật hợp đồng thành công',

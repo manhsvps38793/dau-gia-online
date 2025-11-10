@@ -21,23 +21,9 @@ use Illuminate\Support\Facades\DB;
 use Exception;
 use App\Mail\WinnerNotification;
 use Illuminate\Support\Facades\Mail;
-use App\Models\ActivityLog;
-use Illuminate\Support\Facades\Auth;
 
 class AuctionSessionController extends Controller
 {
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
     // ========================== CREATE ==========================
 
     public function store(Request $request)
@@ -125,14 +111,7 @@ class AuctionSessionController extends Controller
         ]);
 
         $ownerId = $session->item->user_id ?? null;
-        $this->logActivity(
-            $user->user_id,
-            'create',
-            'auction_session',
-            $session->session_id,
-            "{$request->user()->full_name}Tạo phiên đấu giá cho item_id={$request->item_id}, phương thức={$request->method}, thời gian từ {$request->bid_start} đến {$request->bid_end}",
-            'user_action'
-        );
+
         // 7. Gửi thông báo
         if ($ownerId) {
             $notification = Notification::create([
@@ -159,10 +138,7 @@ class AuctionSessionController extends Controller
 
     // ========================== READ ==========================
 
-<<<<<<< HEAD
-=======
-    // ✅ SỬA METHOD NÀY
->>>>>>> bf9fa4a684e81948ef3265d513c9f2bff9ac5166
+   // ✅ SỬA METHOD NÀY
     public function index()
     {
         $sessions = AuctionSession::with([
@@ -170,16 +146,10 @@ class AuctionSessionController extends Controller
             'auctioneer',
             'auctionOrg',
             'profiles.user',
-            'favorites'
+            'favorites' // ✅ THÊM relation này
         ])
-<<<<<<< HEAD
         ->orderBy('session_id', 'desc')
-        ->take(6)
         ->get();
-=======
-            ->orderBy('session_id', 'desc')
-            ->get();
->>>>>>> bf9fa4a684e81948ef3265d513c9f2bff9ac5166
 
         return response()->json([
             'status' => true,
@@ -197,7 +167,7 @@ class AuctionSessionController extends Controller
             'profiles.user',
             'favorites' // ✅ THÊM
         ])
-            ->findOrFail($id);
+        ->findOrFail($id);
 
         return response()->json([
             'status' => true,
@@ -234,18 +204,10 @@ class AuctionSessionController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        $old = $session->getOriginal();
+
         $session->auctioneer_id = $request->auctioneer_id ?? null;
         $session->update($request->all());
-        // 🔹 Log cập nhật phiên đấu giá
-        $this->logActivity(
-            $request->user()->user_id,
-            'update',
-            'auction_session',
-            $session->session_id,
-            "{$request->user()->full_name}Cập nhật phiên đấu giá session_id={$session->session_id}, trước: " . json_encode($old) . ", sau: " . json_encode($session->toArray()),
-            'user_action'
-        );
+
         $now = now();
 
         if ($session->bid_start->gt($now)) {
@@ -265,20 +227,10 @@ class AuctionSessionController extends Controller
 
     // ========================== DELETE ==========================
 
-    public function destroy(Request $request, $sessionId)
+    public function destroy($sessionId)
     {
-       $session = AuctionSession::findOrFail($sessionId);
+        $session = AuctionSession::where('session_id', $sessionId)->delete();
 
-        $this->logActivity(
-            auth::user()->user_id,
-            'delete',
-            'auction_session',
-            $session->session_id,
-            "{$request->user()->full_name} Xóa phiên đấu giá session_id={$session->session_id}, item_id={$session->item_id}",
-            'user_action'
-        );
-
-        $session->delete();
         return response()->json([
             'status'  => true,
             'message' => 'Xóa phiên đấu giá thành công'
@@ -380,14 +332,6 @@ class AuctionSessionController extends Controller
             'kick_reason' => $reason,
             'status'      => 'BịTuChoi',
         ]);
-        $this->logActivity(
-            $authUser->user_id,
-            'update',
-            'auction_profile',
-            $profile->id,
-            "Người dùng user_id={$profile->user_id} bị kick khỏi phiên session_id={$session->session_id}, lý do: {$reason}",
-            'admin_action'
-        );
 
         event(new \App\Events\AuctionSessionUpdated($session));
 
@@ -453,7 +397,11 @@ class AuctionSessionController extends Controller
 
             // 📧 Gửi mail thông báo nếu có email
             if (!empty($winner->email)) {
+                try {
                     Mail::to($winner->email)->send(new WinnerNotification($session, $winner));
+                } catch (\Throwable $mailError) {
+                    \Log::warning('Gửi mail thất bại: ' . $mailError->getMessage());
+                }
             }
 
             // ✅ Trả về kết quả
@@ -467,7 +415,13 @@ class AuctionSessionController extends Controller
                     'confirm_winner_at' => $session->confirm_winner_at,
                 ],
             ]);
+
         } catch (\Throwable $e) {
+            \Log::error('Error confirmWinner: ' . $e->getMessage(), [
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'status' => false,
                 'message' => 'Đã xảy ra lỗi khi xác nhận người thắng.',
@@ -525,6 +479,11 @@ class AuctionSessionController extends Controller
                 'rejected_reason' => $session->rejected_reason
             ]);
         } catch (\Throwable $e) {
+            \Log::error('Error rejectWinner: ' . $e->getMessage(), [
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'status' => false,
                 'message' => 'Đã xảy ra lỗi khi từ chối kết quả.',
@@ -532,4 +491,6 @@ class AuctionSessionController extends Controller
             ], 500);
         }
     }
+
+
 }
