@@ -204,7 +204,9 @@ class PaymentController extends Controller
             event(new \App\Events\NotificationCreated($notification));
         });
 
-        return redirect('http://localhost:3000');
+        // return redirect('http://localhost:3000');
+            return redirect(env('FRONTEND_URL'));
+
     }
     public function store(Request $request)
 {
