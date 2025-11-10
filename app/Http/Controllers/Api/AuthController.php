@@ -255,7 +255,7 @@ class AuthController extends Controller
             'login',
             'user',
             $user->user_id,
-            "{$request->user()->full_name} đăng nhập hệ thống: email={$user->email}"
+            "{$user->full_name} đăng nhập hệ thống: email={$user->email}"
         );
         return response()->json([
             'status' => true,

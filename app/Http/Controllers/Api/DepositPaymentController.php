@@ -132,7 +132,8 @@ class DepositPaymentController extends Controller
             }
 
             // 🔥 Giờ redirect bằng session_id lưu trong DB
-            return redirect('http://localhost:3000/detail/' . $deposit->session_id);
+            // return redirect('http://localhost:3000/detail/' . $deposit->session_id);
+            return redirect(env('FRONTEND_URL') . '/detail/' . $deposit->session_id);
         }
 
         return response()->json([
