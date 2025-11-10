@@ -22,13 +22,14 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\UsersExport;
 use Illuminate\Support\Carbon;
-use App\Models\ActivityLog;
+
+
 
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AuthController extends Controller
 {
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
+        protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
     {
         ActivityLog::create([
             'user_id'     => $userId,
@@ -40,7 +41,6 @@ class AuthController extends Controller
             'created_at'  => now(),
         ]);
     }
-
     public function register(Request $request)
     {
         // Xác thực dữ liệu đầu vào
@@ -153,13 +153,7 @@ class AuthController extends Controller
             'created_at' => now(),
             'updated_at' => now()
         ]);
-        $this->logActivity(
-            $user->user_id,
-            'register',
-            'user',
-            $user->user_id,
-            "Người dùng đăng ký: email={$user->email}, account_type={$user->account_type}"
-        );
+
         // Gửi email xác thực
         try {
             $verifyUrl = url('/api/verify-email/' . $verifyToken);
@@ -194,7 +188,7 @@ class AuthController extends Controller
     }
 
     // GET /api/verify-email/{token}
-    public function verifyEmail($token)
+   public function verifyEmail($token)
     {
         $user = User::where('verify_token', $token)->first();
 
@@ -250,13 +244,7 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
-        $this->logActivity(
-            $user->user_id,
-            'login',
-            'user',
-            $user->user_id,
-            "{$request->user()->full_name} đăng nhập hệ thống: email={$user->email}"
-        );
+
         return response()->json([
             'status' => true,
             'message' => 'Đăng nhập thành công',
@@ -296,6 +284,8 @@ class AuthController extends Controller
     }
 
     // PUT /api/user/update
+
+
     public function update(Request $request, $id)
     {
         try {
@@ -352,27 +342,13 @@ class AuthController extends Controller
 
             // === 3. Lấy dữ liệu ===
             $fields = [
-                'full_name',
-                'email',
-                'phone',
-                'birth_date',
-                'gender',
-                'address',
-                'identity_number',
-                'identity_issue_date',
-                'identity_issued_by',
-                'bank_name',
-                'bank_account',
-                'bank_branch',
-                'position',
-                'organization_name',
-                'tax_code',
-                'business_license_issue_date',
-                'business_license_issued_by',
-                'online_contact_method',
-                'certificate_number',
-                'certificate_issue_date',
-                'certificate_issued_by',
+                'full_name','email','phone','birth_date','gender','address',
+    'identity_number','identity_issue_date','identity_issued_by',
+                'bank_name','bank_account','bank_branch',
+                'position','organization_name','tax_code',
+                'business_license_issue_date','business_license_issued_by',
+                'online_contact_method','certificate_number',
+                'certificate_issue_date','certificate_issued_by',
                 'role_id'
             ];
             $data = $request->only($fields);
@@ -433,6 +409,7 @@ class AuthController extends Controller
                 'message' => 'Cập nhật thành công',
                 'user' => $user->fresh(['role'])
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -440,6 +417,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
 
     // GET /api/users (dành cho admin)
     public function index()
@@ -513,10 +491,16 @@ class AuthController extends Controller
         return response()->json(['status' => true, 'message' => 'Tài khoản đã bị từ chối.']);
     }
 
-    // POST /api/user/lock/{id} - Khóa tài khoản
+ // POST /api/user/lock/{id} - Khóa tài khoản
     public function lockUser($id)
     {
         try {
+            // if (!auth()->user()->hasPermission('lock_users')) {
+            //     return response()->json([
+            //         'status' => false,
+            //         'message' => 'Bạn không có quyền thực hiện hành động này'
+            //     ], 403);
+            // }
             $user = User::where('user_id', $id)->first(); // Sửa thành where('user_id')
             if (!$user) {
                 return response()->json([
@@ -534,7 +518,9 @@ class AuthController extends Controller
                 'status' => true,
                 'message' => 'Đã khóa tài khoản thành công'
             ]);
+
         } catch (\Exception $e) {
+            \Log::error('Lock user error: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
                 'message' => 'Lỗi server: ' . $e->getMessage()
@@ -542,7 +528,7 @@ class AuthController extends Controller
         }
     }
 
-    // POST /api/user/unlock/{id} - Mở khóa tài khoản
+// POST /api/user/unlock/{id} - Mở khóa tài khoản
     public function unlockUser($id)
     {
         try {
@@ -563,7 +549,9 @@ class AuthController extends Controller
                 'status' => true,
                 'message' => 'Đã mở khóa tài khoản thành công'
             ]);
+
         } catch (\Exception $e) {
+            \Log::error('Unlock user error: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
                 'message' => 'Lỗi server: ' . $e->getMessage()
@@ -595,7 +583,9 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Vui lòng kiểm tra email để xác nhận yêu cầu đổi mật khẩu.'
             ]);
+
         } catch (\Exception $e) {
+            \Log::error('Forgot password error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Có lỗi xảy ra. Vui lòng thử lại sau.'
             ], 500);
@@ -605,8 +595,8 @@ class AuthController extends Controller
     public function verifyResetToken($token)
     {
         $user = User::where('reset_token', $token)
-            ->where('reset_token_expires_at', '>', Carbon::now())
-            ->first();
+                    ->where('reset_token_expires_at', '>', Carbon::now())
+                    ->first();
 
         if (!$user) {
             return response()->json([

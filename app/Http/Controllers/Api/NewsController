@@ -6,71 +6,51 @@ use App\Http\Controllers\Controller;
 use App\Models\News;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use App\Models\ActivityLog;
 
 class NewsController extends Controller
 {
-
-
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
     /**
      * 📄 Lấy danh sách tin tức
      */
     public function index()
     {
         $news = News::with('category')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        ->orderBy('created_at', 'desc')
+        ->get();
         return response()->json($news);
     }
 
 
 
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'category_id' => 'required|exists:news_categories,id',
-            'title' => 'required|string|max:255',
-            'content' => 'required',
-            'author' => 'nullable|string|max:255',
-            'is_published' => 'boolean',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+public function store(Request $request)
+{
+    $data = $request->validate([
+        'category_id' => 'required|exists:news_categories,id',
+        'title' => 'required|string|max:255',
+        'content' => 'required',
+        'author' => 'nullable|string|max:255',
+        'is_published' => 'boolean',
+        'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
 
-        if ($request->hasFile('thumbnail')) {
-            $file = $request->file('thumbnail');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('news', $filename, 'public');
+    if ($request->hasFile('thumbnail')) {
+        $file = $request->file('thumbnail');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $file->storeAs('news', $filename, 'public');
 
-            $data['thumbnail'] = asset('storage/news/' . $filename);
-        }
-
-        $news = News::create($data);
-        $this->logActivity(
-            $request->user()->user_id ?? null,
-            'create',
-            'news',
-            $news->id,
-            "{$request->user()->full_name}Tạo tin tức: {$news->title}",
-            'user_action'
-        );
-        return response()->json([
-            'message' => 'Thêm tin tức thành công!',
-            'data' => $news
-        ], 201);
+        // Tạo URL đầy đủ
+        $data['thumbnail'] = asset('storage/news/' . $filename);
+        // Kết quả: http://localhost:8000/storage/news/xxxx.jpg
     }
+
+    $news = News::create($data);
+
+    return response()->json([
+        'message' => 'Thêm tin tức thành công!',
+        'data' => $news
+    ], 201);
+}
 
 
 
@@ -125,14 +105,7 @@ class NewsController extends Controller
         }
 
         $news->update($data);
-        $this->logActivity(
-            $request->user()->user_id ?? null,
-            'update',
-            'news',
-            $news->id,
-            "{$request->user()->full_name}Cập nhật tin tức: {$news->title}",
-            'user_action'
-        );
+
         return response()->json([
             'message' => 'Cập nhật tin tức thành công!',
             'data' => $news->load('category')

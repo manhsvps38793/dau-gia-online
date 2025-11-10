@@ -6,23 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Category;
 use Illuminate\Support\Facades\Validator;
-use App\Models\ActivityLog;
 
 class CategoryController extends Controller
 {
-
-    protected function logActivity($userId, $action, $modelType = null, $modelId = null, $description = null, $actionType = null)
-    {
-        ActivityLog::create([
-            'user_id'     => $userId,
-            'action'      => $action,
-            'action_type' => $actionType ?? 'system', // giá trị mặc định nếu không truyền
-            'model_type'  => $modelType ?? 'user',
-            'model_id'    => $modelId,
-            'description' => $description,
-            'created_at'  => now(),
-        ]);
-    }
     // 📌 Lấy danh sách tất cả danh mục
     public function index()
     {
@@ -73,15 +59,7 @@ class CategoryController extends Controller
             'name'        => $request->name,
             'description' => $request->description
         ]);
-        // 🔹 Log hoạt động
-        $this->logActivity(
-            $request->user()->user_id,
-            'create',
-            'category',
-            $category->category_id,
-            "{$request->user()->full_name} Tạo danh mục '{$category->name}'",
-            'user_action'
-        );
+
         return response()->json([
             'status' => true,
             'message' => 'Thêm danh mục thành công',
@@ -102,8 +80,8 @@ class CategoryController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:categories,name,' . $category->category_id . ',category_id',
-            'description' => 'nullable|string'
+           'name' => 'required|string|max:255|unique:categories,name,' . $category->category_id . ',category_id',
+           'description' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -113,20 +91,12 @@ class CategoryController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        $oldData = $category->toArray();
+
         $category->update([
             'name'        => $request->name,
             'description' => $request->description
         ]);
-        // 🔹 Log hoạt động
-        $this->logActivity(
-            $request->user()->user_id,
-            'update',
-            'category',
-            $category->category_id,
-            "{$request->user()->full_name} Cập nhật danh mục từ " . json_encode($oldData) . " sang " . json_encode($category->toArray()),
-            'user_action'
-        );
+
         return response()->json([
             'status' => true,
             'message' => 'Cập nhật danh mục thành công',
@@ -155,6 +125,7 @@ class CategoryController extends Controller
         }
 
         $category->delete();
+
         return response()->json([
             'status' => true,
             'message' => 'Xóa danh mục thành công'

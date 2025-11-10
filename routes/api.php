@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\{
     PermissionController,
     UserRoleController,
     AuctionSessionFavoriteController,
+    ActivityLogController
 };
 use App\Http\Middleware\CheckPermission;
 /*
@@ -52,6 +53,34 @@ Route::get('/news/{id}', [NewsController::class, 'show']);
 Route::get('/news-categories', [NewsCategoryController::class, 'index']);
 Route::get('/news-categories/{id}', [NewsCategoryController::class, 'show']);
 Route::get('/auction-items/search', [AuctionItemController::class, 'search']);
+
+// 
+// log
+// 
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_history'])->group(function () {
+  // Lấy danh sách log, có thể filter bằng query params
+    Route::get('/log', [ActivityLogController::class, 'index']);
+
+    // Xem chi tiết log
+    Route::get('/log/{id}', [ActivityLogController::class, 'show']);
+
+    // Xóa log
+    Route::delete('/log/{id}', [ActivityLogController::class, 'destroy']);
+});
+
+// =============
+// hợp đồng
+// =============
+Route::middleware(['auth:sanctum', CheckPermission::class.':view_contracts'])->group(function () {
+    Route::get('/contracts', [ContractController::class, 'index']);
+    Route::get('/contracts/{id}', [ContractController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum', CheckPermission::class.':manage_contracts'])->group(function () {
+    Route::post('/contracts/{id}', [ContractController::class, 'update']);
+    Route::delete('/contracts/{id}', [ContractController::class, 'destroy']);
+});
+
 // =======================
 // 🟡 AUTHENTICATION
 // =======================
@@ -159,8 +188,8 @@ Route::middleware(['auth:sanctum'])->get('/payments', [PaymentController::class,
 // =======================
 // 📊 BÁO CÁO
 // =======================
-Route::middleware(['auth:sanctum', CheckPermission::class.':generate_reports'])->post('/reports/generate', [ReportController::class, 'generateReport']);
-Route::middleware(['auth:sanctum', CheckPermission::class.':view_reports'])->get('/reports', [ReportController::class, 'listReports']);
+// Route::middleware(['auth:sanctum', CheckPermission::class.':generate_reports'])->post('/reports/generate', [ReportController::class, 'generateReport']);
+// Route::middleware(['auth:sanctum', CheckPermission::class.':view_reports'])->get('/reports', [ReportController::class, 'listReports']);
 
 // =======================
 // 🔔 THÔNG BÁO
