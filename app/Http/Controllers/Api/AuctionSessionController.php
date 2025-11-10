@@ -138,7 +138,6 @@ class AuctionSessionController extends Controller
 
     // ========================== READ ==========================
 
-   // ✅ SỬA METHOD NÀY
     public function index()
     {
         $sessions = AuctionSession::with([
@@ -146,9 +145,10 @@ class AuctionSessionController extends Controller
             'auctioneer',
             'auctionOrg',
             'profiles.user',
-            'favorites' // ✅ THÊM relation này
+            'favorites'
         ])
         ->orderBy('session_id', 'desc')
+        ->take(6)
         ->get();
 
         return response()->json([
