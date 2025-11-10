@@ -19,11 +19,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use App\Mail\WinnerNotification;
+use Illuminate\Support\Facades\Mail;
 
 class AuctionSessionController extends Controller
 {
     // ========================== CREATE ==========================
-    
+
     public function store(Request $request)
     {
         $user = $request->user();
@@ -341,4 +343,154 @@ class AuctionSessionController extends Controller
             'profile' => $profile->fresh(),
         ]);
     }
+
+    public function confirmWinner($id)
+    {
+        try {
+            $session = AuctionSession::with(['item', 'bids', 'profiles.user'])->findOrFail($id);
+
+            // 🔒 Kiểm tra phiên đã kết thúc chưa
+            if ($session->status !== 'KetThuc') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Phiên đấu giá chưa kết thúc.'
+                ], 400);
+            }
+
+            // ⚠️ Kiểm tra nếu đã xác nhận rồi
+            if (!is_null($session->confirm_winner_at)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Phiên này đã xác nhận người thắng rồi.'
+                ], 400);
+            }
+
+            // ❗ Kiểm tra nếu đã bị từ chối trước đó
+            if (!is_null($session->reject_winner_at)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Phiên này đã bị từ chối kết quả, không thể xác nhận.'
+                ], 400);
+            }
+
+            // 🧍‍♂️ Lấy người thắng hiện tại
+            $winnerId = $session->current_winner_id;
+            if (!$winnerId) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Không tìm thấy người thắng.'
+                ], 404);
+            }
+
+            $winner = User::find($winnerId);
+            if (!$winner) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Không tìm thấy thông tin người thắng.'
+                ], 404);
+            }
+
+            // 🕒 Cập nhật thời gian xác nhận
+            $session->confirm_winner_at = Carbon::now();
+            // $session->reject_winner_at = null;
+            $session->save();
+
+            // 📧 Gửi mail thông báo nếu có email
+            if (!empty($winner->email)) {
+                try {
+                    Mail::to($winner->email)->send(new WinnerNotification($session, $winner));
+                } catch (\Throwable $mailError) {
+                    \Log::warning('Gửi mail thất bại: ' . $mailError->getMessage());
+                }
+            }
+
+            // ✅ Trả về kết quả
+            return response()->json([
+                'status' => true,
+                'message' => 'Xác nhận người thắng thành công.',
+                'data' => [
+                    'winner_id' => $winner->user_id,
+                    'winner_name' => $winner->full_name,
+                    'winner_email' => $winner->email,
+                    'confirm_winner_at' => $session->confirm_winner_at,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('Error confirmWinner: ' . $e->getMessage(), [
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Đã xảy ra lỗi khi xác nhận người thắng.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function rejectWinner(Request $request, $id)
+    {
+        try {
+            $session = AuctionSession::findOrFail($id);
+
+            // Kiểm tra xem phiên có thể từ chối không
+            if ($session->status !== 'KetThuc') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Phiên đấu giá chưa kết thúc.'
+                ], 400);
+            }
+
+            // Nếu đã xác nhận người thắng rồi thì không được từ chối nữa
+            if ($session->confirm_winner_at !== null) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Phiên này đã xác nhận người thắng, không thể từ chối.'
+                ], 400);
+            }
+
+            // Nếu đã từng từ chối rồi
+            if ($session->reject_winner_at !== null) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Phiên này đã bị từ chối trước đó.'
+                ], 400);
+            }
+
+            // Ghi nhận lý do từ chối
+            $reason = $request->input('reason');
+            if (empty($reason)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Vui lòng nhập lý do từ chối.'
+                ], 422);
+            }
+
+            $session->reject_winner_at = Carbon::now();
+            $session->rejected_reason = $reason;
+            $session->save();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Đã từ chối kết quả đấu giá.',
+                'reject_winner_at' => $session->reject_winner_at,
+                'rejected_reason' => $session->rejected_reason
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Error rejectWinner: ' . $e->getMessage(), [
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Đã xảy ra lỗi khi từ chối kết quả.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
 }
