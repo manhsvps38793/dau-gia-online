@@ -54,9 +54,9 @@ Route::get('/news-categories', [NewsCategoryController::class, 'index']);
 Route::get('/news-categories/{id}', [NewsCategoryController::class, 'show']);
 Route::get('/auction-items/search', [AuctionItemController::class, 'search']);
 
-// 
+//
 // log
-// 
+//
 Route::middleware(['auth:sanctum', CheckPermission::class.':manage_history'])->group(function () {
   // Lấy danh sách log, có thể filter bằng query params
     Route::get('/log', [ActivityLogController::class, 'index']);
@@ -91,6 +91,8 @@ Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum')
 Route::put('/user/update/{id}', [AuthController::class, 'update'])->middleware('auth:sanctum');
 Route::get('/showuser', [AuthController::class, 'index']);
 Route::put('/user/approve/{id}', [AuthController::class, 'approveUser'])->middleware('auth:sanctum');
+// Route::put('/user/{id}/reapprove', [AuthController::class, 'reapproveUser'])->middleware('auth:sanctum');;
+Route::put('/user/{id}/reapprove', [AuthController::class, 'reapproveUser']);
 Route::put('/user/reject/{id}', [AuthController::class, 'rejectUser'])->middleware('auth:sanctum');
 
 Route::get('/user/check-lock/{id}', [AuthController::class, 'checkLockStatus'])->middleware('auth:sanctum');

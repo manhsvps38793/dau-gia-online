@@ -482,7 +482,7 @@ class AuthController extends Controller
         if ($user->email_verified_at == null) {
             return response()->json(['status' => false, 'message' => 'Tài khoản chưa được xác minh'], 404);
         }
-        
+
         $user->update([
             'admin_verified_at' => now(),
             'admin_verify_status' => 'approved',
@@ -511,6 +511,44 @@ class AuthController extends Controller
         ]);
 
         return response()->json(['status' => true, 'message' => 'Tài khoản đã bị từ chối.']);
+    }
+
+    // duyetj laij tài khoản
+
+    public function reapproveUser($id)
+    {
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Không tìm thấy người dùng'
+                ], 404);
+            }
+
+            if ($user->email_verified_at == null) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tài khoản chưa được xác minh email, không thể duyệt lại.'
+                ], 400);
+            }
+
+            $user->update([
+                'admin_verified_at' => now(),
+                'admin_verify_status' => 'approved'
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Tài khoản đã được duyệt lại thành công.'
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Lỗi server: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // POST /api/user/lock/{id} - Khóa tài khoản
