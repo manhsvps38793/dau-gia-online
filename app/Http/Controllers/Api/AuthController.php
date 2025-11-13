@@ -482,10 +482,10 @@ class AuthController extends Controller
         if ($user->email_verified_at == null) {
             return response()->json(['status' => false, 'message' => 'Tài khoản chưa được xác minh'], 404);
         }
-
+        
         $user->update([
             'admin_verified_at' => now(),
-            'admin_verify_status' => 'approved'
+            'admin_verify_status' => 'approved',
         ]);
 
 
